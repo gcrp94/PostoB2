@@ -1,0 +1,428 @@
+{
+ "gerado_em": "2026-09-29T11:46:55",
+ "ultima_data": "2026-09-27",
+ "arquivos": [
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2025,
+   "mes": 10,
+   "arquivo": "B2 Bonsucesso 10-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2025,
+   "mes": 11,
+   "arquivo": "B2 Bonsucesso 11-2025.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2025,
+   "mes": 12,
+   "arquivo": "B2 Bonsucesso 12-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 1,
+   "arquivo": "B2 Bonsucesso 01-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 2,
+   "arquivo": "B2 Bonsucesso 02-2026.xlsx",
+   "linhas": 112
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 3,
+   "arquivo": "B2 Bonsucesso 03-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 4,
+   "arquivo": "B2 Bonsucesso 04-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 5,
+   "arquivo": "B2 Bonsucesso 05-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 6,
+   "arquivo": "B2 Bonsucesso 06-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 7,
+   "arquivo": "B2 Bonsucesso 07-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 8,
+   "arquivo": "B2 Bonsucesso 08-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Bonsucesso",
+   "ano": 2026,
+   "mes": 9,
+   "arquivo": "B2 Bonsucesso 09-2026.xlsx",
+   "linhas": 108
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2025,
+   "mes": 10,
+   "arquivo": "B2 Candói 10-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2025,
+   "mes": 11,
+   "arquivo": "B2 Candói 11-2025.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2025,
+   "mes": 12,
+   "arquivo": "B2 Candói 12-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 1,
+   "arquivo": "B2 Candói 01-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 2,
+   "arquivo": "B2 Candói 02-2026.xlsx",
+   "linhas": 112
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 3,
+   "arquivo": "B2 Candói 03-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 4,
+   "arquivo": "B2 Candói 04-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 5,
+   "arquivo": "B2 Candói 05-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 6,
+   "arquivo": "B2 Candói 06-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 7,
+   "arquivo": "B2 Candói 07-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 8,
+   "arquivo": "B2 Candói 08-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Candói",
+   "ano": 2026,
+   "mes": 9,
+   "arquivo": "B2 Candói 09-2026.xlsx",
+   "linhas": 108
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2025,
+   "mes": 10,
+   "arquivo": "B2 Centro 10-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2025,
+   "mes": 11,
+   "arquivo": "B2 Centro 11-2025.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2025,
+   "mes": 12,
+   "arquivo": "B2 Centro 12-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 1,
+   "arquivo": "B2 Centro 01-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 2,
+   "arquivo": "B2 Centro 02-2026.xlsx",
+   "linhas": 112
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 3,
+   "arquivo": "B2 Centro 03-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 4,
+   "arquivo": "B2 Centro 04-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 5,
+   "arquivo": "B2 Centro 05-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 6,
+   "arquivo": "B2 Centro 06-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 7,
+   "arquivo": "B2 Centro 07-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 8,
+   "arquivo": "B2 Centro 08-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Centro",
+   "ano": 2026,
+   "mes": 9,
+   "arquivo": "B2 Centro 09-2026.xlsx",
+   "linhas": 108
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2025,
+   "mes": 10,
+   "arquivo": "B2 Índio 10-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2025,
+   "mes": 11,
+   "arquivo": "B2 Índio 11-2025.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2025,
+   "mes": 12,
+   "arquivo": "B2 Índio 12-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 1,
+   "arquivo": "B2 Índio 01-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 2,
+   "arquivo": "B2 Índio 02-2026.xlsx",
+   "linhas": 112
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 3,
+   "arquivo": "B2 Índio 03-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 4,
+   "arquivo": "B2 Índio 04-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 5,
+   "arquivo": "B2 Índio 05-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 6,
+   "arquivo": "B2 Índio 06-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 7,
+   "arquivo": "B2 Índio 07-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 8,
+   "arquivo": "B2 Índio 08-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Índio",
+   "ano": 2026,
+   "mes": 9,
+   "arquivo": "B2 Índio 09-2026.xlsx",
+   "linhas": 108
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2025,
+   "mes": 10,
+   "arquivo": "B2 Primavera 10-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2025,
+   "mes": 11,
+   "arquivo": "B2 Primavera 11-2025.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2025,
+   "mes": 12,
+   "arquivo": "B2 Primavera 12-2025.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 1,
+   "arquivo": "B2 Primavera 01-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 2,
+   "arquivo": "B2 Primavera 02-2026.xlsx",
+   "linhas": 112
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 3,
+   "arquivo": "B2 Primavera 03-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 4,
+   "arquivo": "B2 Primavera 04-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 5,
+   "arquivo": "B2 Primavera 05-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 6,
+   "arquivo": "B2 Primavera 06-2026.xlsx",
+   "linhas": 120
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 7,
+   "arquivo": "B2 Primavera 07-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 8,
+   "arquivo": "B2 Primavera 08-2026.xlsx",
+   "linhas": 124
+  },
+  {
+   "posto": "B2 Primavera",
+   "ano": 2026,
+   "mes": 9,
+   "arquivo": "B2 Primavera 09-2026.xlsx",
+   "linhas": 96
+  }
+ ],
+ "avisos": [],
+ "erros": []
+}

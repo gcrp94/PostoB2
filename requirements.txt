@@ -1,0 +1,8 @@
+# Versão PRESA de propósito (lição do Painel de Finanças): com ">=" a nuvem
+# instala a mais nova, cuja estrutura HTML muda e o CSS deixa de aplicar.
+streamlit==1.60.0
+pandas>=2.2
+pyarrow>=15
+openpyxl>=3.1
+plotly>=5.22
+numpy>=1.26

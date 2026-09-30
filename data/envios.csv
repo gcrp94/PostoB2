@@ -1,0 +1,188 @@
+data_hora;posto;pasta;usuario;periodo;arquivo;resultado;detalhe
+2025-11-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;10/2025;B2 Bonsucesso 10-2025.xlsx;Processado;mês fechado (até 31/10)
+2025-11-02 08:14;B2 Centro;b2_centro;joao.centro;10/2025;B2 Centro 10-2025.xlsx;Processado;mês fechado (até 31/10)
+2025-11-02 08:32;B2 Índio;b2_indio;paulo.indio;10/2025;B2 Índio 10-2025.xlsx;Processado;mês fechado (até 31/10)
+2025-11-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;10/2025;B2 Primavera 10-2025.xlsx;Processado;mês fechado (até 31/10)
+2025-11-02 18:42;B2 Candói;b2_candoi;ana.candoi;10/2025;B2 Candói 10-2025.xlsx;Processado;mês fechado (até 31/10)
+2025-12-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;11/2025;B2 Bonsucesso 11-2025.xlsx;Processado;mês fechado (até 30/11)
+2025-12-02 08:14;B2 Centro;b2_centro;joao.centro;11/2025;B2 Centro 11-2025.xlsx;Processado;mês fechado (até 30/11)
+2025-12-02 08:32;B2 Índio;b2_indio;paulo.indio;11/2025;B2 Índio 11-2025.xlsx;Processado;mês fechado (até 30/11)
+2025-12-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;11/2025;B2 Primavera 11-2025.xlsx;Processado;mês fechado (até 30/11)
+2025-12-02 18:42;B2 Candói;b2_candoi;ana.candoi;11/2025;B2 Candói 11-2025.xlsx;Processado;mês fechado (até 30/11)
+2026-01-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;12/2025;B2 Bonsucesso 12-2025.xlsx;Processado;mês fechado (até 31/12)
+2026-01-02 08:14;B2 Centro;b2_centro;joao.centro;12/2025;B2 Centro 12-2025.xlsx;Processado;mês fechado (até 31/12)
+2026-01-02 08:32;B2 Índio;b2_indio;paulo.indio;12/2025;B2 Índio 12-2025.xlsx;Processado;mês fechado (até 31/12)
+2026-01-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;12/2025;B2 Primavera 12-2025.xlsx;Processado;mês fechado (até 31/12)
+2026-01-02 18:42;B2 Candói;b2_candoi;ana.candoi;12/2025;B2 Candói 12-2025.xlsx;Processado;mês fechado (até 31/12)
+2026-02-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;01/2026;B2 Bonsucesso 01-2026.xlsx;Processado;mês fechado (até 31/01)
+2026-02-02 08:14;B2 Centro;b2_centro;joao.centro;01/2026;B2 Centro 01-2026.xlsx;Processado;mês fechado (até 31/01)
+2026-02-02 08:32;B2 Índio;b2_indio;paulo.indio;01/2026;B2 Índio 01-2026.xlsx;Processado;mês fechado (até 31/01)
+2026-02-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;01/2026;B2 Primavera 01-2026.xlsx;Processado;mês fechado (até 31/01)
+2026-02-02 18:42;B2 Candói;b2_candoi;ana.candoi;01/2026;B2 Candói 01-2026.xlsx;Processado;mês fechado (até 31/01)
+2026-03-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;02/2026;B2 Bonsucesso 02-2026.xlsx;Processado;mês fechado (até 28/02)
+2026-03-02 08:14;B2 Centro;b2_centro;joao.centro;02/2026;B2 Centro 02-2026.xlsx;Processado;mês fechado (até 28/02)
+2026-03-02 08:32;B2 Índio;b2_indio;paulo.indio;02/2026;B2 Índio 02-2026.xlsx;Processado;mês fechado (até 28/02)
+2026-03-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;02/2026;B2 Primavera 02-2026.xlsx;Processado;mês fechado (até 28/02)
+2026-03-02 18:42;B2 Candói;b2_candoi;ana.candoi;02/2026;B2 Candói 02-2026.xlsx;Processado;mês fechado (até 28/02)
+2026-04-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;03/2026;B2 Bonsucesso 03-2026.xlsx;Processado;mês fechado (até 31/03)
+2026-04-02 08:14;B2 Centro;b2_centro;joao.centro;03/2026;B2 Centro 03-2026.xlsx;Processado;mês fechado (até 31/03)
+2026-04-02 08:32;B2 Índio;b2_indio;paulo.indio;03/2026;B2 Índio 03-2026.xlsx;Processado;mês fechado (até 31/03)
+2026-04-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;03/2026;B2 Primavera 03-2026.xlsx;Processado;mês fechado (até 31/03)
+2026-04-02 18:42;B2 Candói;b2_candoi;ana.candoi;03/2026;B2 Candói 03-2026.xlsx;Processado;mês fechado (até 31/03)
+2026-05-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;04/2026;B2 Bonsucesso 04-2026.xlsx;Processado;mês fechado (até 30/04)
+2026-05-02 08:14;B2 Centro;b2_centro;joao.centro;04/2026;B2 Centro 04-2026.xlsx;Processado;mês fechado (até 30/04)
+2026-05-02 08:32;B2 Índio;b2_indio;paulo.indio;04/2026;B2 Índio 04-2026.xlsx;Processado;mês fechado (até 30/04)
+2026-05-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;04/2026;B2 Primavera 04-2026.xlsx;Processado;mês fechado (até 30/04)
+2026-05-02 18:42;B2 Candói;b2_candoi;ana.candoi;04/2026;B2 Candói 04-2026.xlsx;Processado;mês fechado (até 30/04)
+2026-06-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;05/2026;B2 Bonsucesso 05-2026.xlsx;Processado;mês fechado (até 31/05)
+2026-06-02 08:14;B2 Centro;b2_centro;joao.centro;05/2026;B2 Centro 05-2026.xlsx;Processado;mês fechado (até 31/05)
+2026-06-02 08:32;B2 Índio;b2_indio;paulo.indio;05/2026;B2 Índio 05-2026.xlsx;Processado;mês fechado (até 31/05)
+2026-06-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;05/2026;B2 Primavera 05-2026.xlsx;Processado;mês fechado (até 31/05)
+2026-06-02 18:42;B2 Candói;b2_candoi;ana.candoi;05/2026;B2 Candói 05-2026.xlsx;Processado;mês fechado (até 31/05)
+2026-07-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;06/2026;B2 Bonsucesso 06-2026.xlsx;Processado;mês fechado (até 30/06)
+2026-07-02 08:14;B2 Centro;b2_centro;joao.centro;06/2026;B2 Centro 06-2026.xlsx;Processado;mês fechado (até 30/06)
+2026-07-02 08:32;B2 Índio;b2_indio;paulo.indio;06/2026;B2 Índio 06-2026.xlsx;Processado;mês fechado (até 30/06)
+2026-07-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;06/2026;B2 Primavera 06-2026.xlsx;Processado;mês fechado (até 30/06)
+2026-07-02 18:42;B2 Candói;b2_candoi;ana.candoi;06/2026;B2 Candói 06-2026.xlsx;Processado;mês fechado (até 30/06)
+2026-08-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;07/2026;B2 Bonsucesso 07-2026.xlsx;Processado;mês fechado (até 31/07)
+2026-08-02 08:14;B2 Centro;b2_centro;joao.centro;07/2026;B2 Centro 07-2026.xlsx;Processado;mês fechado (até 31/07)
+2026-08-02 08:32;B2 Índio;b2_indio;paulo.indio;07/2026;B2 Índio 07-2026.xlsx;Processado;mês fechado (até 31/07)
+2026-08-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;07/2026;B2 Primavera 07-2026.xlsx;Processado;mês fechado (até 31/07)
+2026-08-02 18:42;B2 Candói;b2_candoi;ana.candoi;07/2026;B2 Candói 07-2026.xlsx;Processado;mês fechado (até 31/07)
+2026-09-01 18:12;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 01/09
+2026-09-02 07:18;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 01/09
+2026-09-02 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;08/2026;B2 Bonsucesso 08-2026.xlsx;Processado;mês fechado (até 31/08)
+2026-09-02 08:14;B2 Centro;b2_centro;joao.centro;08/2026;B2 Centro 08-2026.xlsx;Processado;mês fechado (até 31/08)
+2026-09-02 08:25;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 01/09
+2026-09-02 08:32;B2 Índio;b2_indio;paulo.indio;08/2026;B2 Índio 08-2026.xlsx;Processado;mês fechado (até 31/08)
+2026-09-02 08:54;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 01/09
+2026-09-02 17:25;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 01/09
+2026-09-02 17:31;B2 Primavera;b2_primavera;marcos.primavera;08/2026;B2 Primavera 08-2026.xlsx;Processado;mês fechado (até 31/08)
+2026-09-02 18:42;B2 Candói;b2_candoi;ana.candoi;08/2026;B2 Candói 08-2026.xlsx;Processado;mês fechado (até 31/08)
+2026-09-02 18:55;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 02/09
+2026-09-03 07:30;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 02/09
+2026-09-03 08:02;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 02/09
+2026-09-03 08:12;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 02/09
+2026-09-03 17:20;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 02/09
+2026-09-03 18:27;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 03/09
+2026-09-04 07:40;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 03/09
+2026-09-04 08:12;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 03/09
+2026-09-04 08:27;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 03/09
+2026-09-04 17:47;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 03/09
+2026-09-04 18:02;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 04/09
+2026-09-05 07:13;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 04/09
+2026-09-05 08:30;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 04/09
+2026-09-05 08:33;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 04/09
+2026-09-05 17:31;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 04/09
+2026-09-05 18:53;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 05/09
+2026-09-06 07:31;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 05/09
+2026-09-06 08:19;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 05/09
+2026-09-06 08:44;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 05/09
+2026-09-06 17:46;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 05/09
+2026-09-06 18:12;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 06/09
+2026-09-07 07:35;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 06/09
+2026-09-07 08:14;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 06/09
+2026-09-07 08:45;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 06/09
+2026-09-07 17:52;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 06/09
+2026-09-07 18:39;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 07/09
+2026-09-08 07:04;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 07/09
+2026-09-08 08:00;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 07/09
+2026-09-08 08:33;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 07/09
+2026-09-08 17:47;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 07/09
+2026-09-08 18:43;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 08/09
+2026-09-09 07:29;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 08/09
+2026-09-09 08:28;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 08/09
+2026-09-09 08:33;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 08/09
+2026-09-09 17:07;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 08/09
+2026-09-09 18:02;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 09/09
+2026-09-10 07:46;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 09/09
+2026-09-10 08:52;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 09/09
+2026-09-10 08:55;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 09/09
+2026-09-10 17:27;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 09/09
+2026-09-10 18:03;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 10/09
+2026-09-11 07:24;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 10/09
+2026-09-11 08:18;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 10/09
+2026-09-11 08:43;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 10/09
+2026-09-11 17:03;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 10/09
+2026-09-11 18:08;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 11/09
+2026-09-12 07:29;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 11/09
+2026-09-12 08:06;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 11/09
+2026-09-12 08:57;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 11/09
+2026-09-12 17:44;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 11/09
+2026-09-12 18:21;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 12/09
+2026-09-13 07:57;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 12/09
+2026-09-13 08:29;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 12/09
+2026-09-13 08:33;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 12/09
+2026-09-13 17:22;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 12/09
+2026-09-13 18:28;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 13/09
+2026-09-14 07:07;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 13/09
+2026-09-14 08:44;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 13/09
+2026-09-14 08:55;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 13/09
+2026-09-14 17:13;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 13/09
+2026-09-14 18:30;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 14/09
+2026-09-15 07:12;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 14/09
+2026-09-15 08:05;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 14/09
+2026-09-15 08:56;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 14/09
+2026-09-15 17:38;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 14/09
+2026-09-15 18:07;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 15/09
+2026-09-16 07:00;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 15/09
+2026-09-16 08:28;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 15/09
+2026-09-16 08:42;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 15/09
+2026-09-16 17:57;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 15/09
+2026-09-16 18:08;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 16/09
+2026-09-17 07:28;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 16/09
+2026-09-17 08:05;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 16/09
+2026-09-17 08:46;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 16/09
+2026-09-17 17:15;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 16/09
+2026-09-17 18:57;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 17/09
+2026-09-18 07:45;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 17/09
+2026-09-18 08:16;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 17/09
+2026-09-18 08:48;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 17/09
+2026-09-18 17:08;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 17/09
+2026-09-18 18:36;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 18/09
+2026-09-19 07:55;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 18/09
+2026-09-19 08:03;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 18/09
+2026-09-19 08:20;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 18/09
+2026-09-19 17:29;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 18/09
+2026-09-19 18:30;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 19/09
+2026-09-20 07:24;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 19/09
+2026-09-20 08:25;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 19/09
+2026-09-20 08:29;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 19/09
+2026-09-20 17:38;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 19/09
+2026-09-20 18:53;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 20/09
+2026-09-21 07:53;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 20/09
+2026-09-21 08:07;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 20/09
+2026-09-21 08:28;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 20/09
+2026-09-21 17:45;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 20/09
+2026-09-21 18:27;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 21/09
+2026-09-22 07:01;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 21/09
+2026-09-22 08:36;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 21/09
+2026-09-22 08:54;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 21/09
+2026-09-22 17:21;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 21/09
+2026-09-22 18:35;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 22/09
+2026-09-23 07:30;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 22/09
+2026-09-23 08:11;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 22/09
+2026-09-23 08:55;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 22/09
+2026-09-23 17:43;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 22/09
+2026-09-23 18:47;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 23/09
+2026-09-24 07:46;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 23/09
+2026-09-24 08:05;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 23/09
+2026-09-24 08:21;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 23/09
+2026-09-24 17:28;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Substituído;dados até 23/09
+2026-09-24 18:29;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 24/09
+2026-09-25 07:23;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 24/09
+2026-09-25 08:26;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 24/09
+2026-09-25 08:43;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 24/09
+2026-09-25 17:31;B2 Primavera;b2_primavera;marcos.primavera;09/2026;B2 Primavera 09-2026.xlsx;Processado;dados até 24/09
+2026-09-25 18:48;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 25/09
+2026-09-26 07:45;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 25/09
+2026-09-26 08:13;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 25/09
+2026-09-26 08:25;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 25/09
+2026-09-26 18:21;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Substituído;dados até 26/09
+2026-09-27 07:31;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Substituído;dados até 26/09
+2026-09-27 08:04;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Substituído;dados até 26/09
+2026-09-27 08:37;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Substituído;dados até 26/09
+2026-09-27 18:42;B2 Candói;b2_candoi;ana.candoi;09/2026;B2 Candói 09-2026.xlsx;Processado;dados até 27/09
+2026-09-28 07:52;B2 Bonsucesso;b2_bonsucesso;carlos.bonsucesso;09/2026;B2 Bonsucesso 09-2026.xlsx;Processado;dados até 27/09
+2026-09-28 08:14;B2 Centro;b2_centro;joao.centro;09/2026;B2 Centro 09-2026.xlsx;Processado;dados até 27/09
+2026-09-28 08:32;B2 Índio;b2_indio;paulo.indio;09/2026;B2 Índio 09-2026.xlsx;Processado;dados até 27/09

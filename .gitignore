@@ -1,0 +1,22 @@
+# Segredos — NUNCA versionar (senhas, token do GitHub)
+.streamlit/secrets.toml
+config_assistente.local.json
+config_assistente.local.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Locais da máquina
+logs/
+~$*.xlsx
+.claude/settings.local.json
+
+# Versões anteriores das planilhas (no GitHub, o próprio histórico cumpre esse papel)
+data/*/_versoes/
+
+# Pastas temporárias da gravação atômica da base
+data/base_nova/
+data/base_anterior/

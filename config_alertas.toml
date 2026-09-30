@@ -1,0 +1,23 @@
+# Para onde vão os alertas da rede (motor_alertas.py).
+#
+# canal = "console"   -> só aparece no terminal (padrão; nada sai da máquina)
+# canal = "ntfy"      -> app ntfy no celular (gratuito): preencha [ntfy].topico
+# canal = "pushover"  -> app Pushover: preencha [pushover].token e .usuario
+# canal = "telegram"  -> o robô do 💬 B2 Assistente (o mais simples: conecte pelo painel)
+#
+# Publicado, prefira passar os segredos pelo GitHub Actions (variáveis
+# B2_CANAL, B2_NTFY_TOPICO, B2_PUSHOVER_TOKEN, B2_PUSHOVER_USUARIO) em vez de
+# escrevê-los aqui — este arquivo vai para o repositório.
+
+[envio]
+canal = "console"
+niveis = ["critico", "atencao"]      # "destaque" também, se quiser as boas notícias
+url_painel = "http://localhost:8501"
+
+[ntfy]
+servidor = "https://ntfy.sh"
+topico = ""                          # ex.: "b2postos-alertas-7f3k9q" (difícil de adivinhar)
+
+[pushover]
+token = ""
+usuario = ""

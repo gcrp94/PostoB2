@@ -1,0 +1,69 @@
+# Planilha chegou no repositório (enviada pelo próprio painel, pela API do
+# GitHub) -> monta a base, roda os testes, manda os alertas novos para o
+# celular e publica a base. A Streamlit Cloud vê o commit e o painel mostra o
+# dado novo em 2 a 3 minutos. Para quem envia a planilha, o GitHub nem existe.
+#
+# Segredos (Settings -> Secrets and variables -> Actions):
+#   B2_CANAL            ntfy | pushover   (sem ele, os alertas só vão para o log)
+#   B2_NTFY_TOPICO      tópico do ntfy
+#   B2_PUSHOVER_TOKEN   token do aplicativo no Pushover
+#   B2_PUSHOVER_USUARIO chave do usuário no Pushover
+# Variável:
+#   B2_URL_PAINEL       endereço do painel publicado (o "Abrir" da notificação)
+
+name: Atualizar base e alertas
+
+on:
+  push:
+    paths:
+      - "data/**/*.xlsx"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-base
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar
+        run: pip install -r requirements.txt pytest
+
+      - name: Montar a base (planilha com erro NÃO publica nada)
+        run: python gerar_base.py
+
+      - name: Conferir os números
+        run: python -m pytest -q
+
+      - name: Alertas para o celular
+        env:
+          B2_CANAL: ${{ secrets.B2_CANAL }}
+          B2_NTFY_TOPICO: ${{ secrets.B2_NTFY_TOPICO }}
+          B2_PUSHOVER_TOKEN: ${{ secrets.B2_PUSHOVER_TOKEN }}
+          B2_PUSHOVER_USUARIO: ${{ secrets.B2_PUSHOVER_USUARIO }}
+          B2_URL_PAINEL: ${{ vars.B2_URL_PAINEL }}
+        run: python motor_alertas.py
+
+      - name: Publicar a base
+        run: |
+          git config user.name "b2-atualizador"
+          git config user.email "b2-atualizador@users.noreply.github.com"
+          git add data/base data/alertas_enviados.csv 2>/dev/null || git add data/base
+          if git diff --cached --quiet; then
+            echo "Base sem mudança — nada a publicar."
+          else
+            git commit -m "Base atualizada (planilha recebida)"
+            git pull --rebase
+            git push
+          fi
