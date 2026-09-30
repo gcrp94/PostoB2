@@ -1,0 +1,66 @@
+# Despertador do painel B2 Gestão na Streamlit Community Cloud.
+#
+# O mesmo do Painel de Finanças. Pela documentação oficial, "All apps without
+# traffic for 12 hours go to sleep". Este job abre o painel num navegador de
+# verdade (Chromium headless, via Playwright) de tempos em tempos e, se o
+# encontrar dormindo, clica em "Yes, get this app back up!". O trabalho está
+# em keep_alive.py.
+#
+# Por que navegador, e não curl: a plataforma só conta como visita uma SESSÃO
+# do app, a conexão WebSocket que o navegador abre depois de carregar a
+# página. O curl pega o HTML e vai embora — no Finanças, o job com curl ficava
+# verde e o app dormia igual. Pelo mesmo motivo o UptimeRobot não resolve.
+#
+# Não faz login: chegar à tela de login já é sessão.
+#
+# A URL vem da variável APP_URL (Settings > Secrets and variables > Actions >
+# Variables); sem ela, usa o endereço do painel.
+
+name: Manter o painel acordado
+
+on:
+  schedule:
+    # A cada 4 horas, no minuto 47. O limite de hibernação é 12h, então sobra
+    # margem para o agendador do GitHub atrasar ou pular execuções, o que ele
+    # faz em horário de pico — e o minuto 0 é justamente o mais congestionado.
+    #
+    # NÃO é a cada 30 minutos, de propósito: o repositório é privado, e o plano
+    # gratuito dá 2.000 minutos de Actions por mês. Cada execução custa por
+    # volta de 2 minutos (instalar o Chromium é a parte cara); a cada 30 min
+    # seriam ~2.900 min/mês e o Actions pararia no meio do mês. A cada 4h são
+    # ~360.
+    - cron: "47 */4 * * *"
+  # Botão "Run workflow", para testar na hora.
+  workflow_dispatch:
+
+jobs:
+  acordar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar o navegador
+        run: |
+          pip install "playwright>=1.40,<2"
+          python -m playwright install --with-deps chromium
+
+      - name: Visitar o painel
+        env:
+          STREAMLIT_APP_URL: ${{ vars.APP_URL || 'https://b2gestao.streamlit.app/' }}
+        run: python keep_alive.py
+
+      # Se o painel não respondeu, guarda o que o navegador estava vendo — é o
+      # que responde "dormia? travou? a URL mudou?" sem ter de adivinhar.
+      - name: Guardar o print da falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keep-alive-falha
+          path: keep_alive_falha.png
+          if-no-files-found: ignore
+          retention-days: 7

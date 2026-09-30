@@ -261,6 +261,16 @@ Repositório: **github.com/gcrp94/PostoB2**.
    os testes, manda os alertas e publica. O disco da Streamlit Cloud não é
    permanente — sem o `[github]`, planilha enviada lá se perde.
 
+**Despertador (o mesmo do B.I. de Finanças):** o app dorme depois de 12 horas
+sem visita. O `.github/workflows/manter-app-acordado.yml` roda o
+`keep_alive.py` a cada 4 horas: abre o painel num navegador de verdade, sem
+tela, e clica em *"Yes, get this app back up!"* se ele estiver dormindo. Não
+faz login — chegar à tela de login já conta como visita. Custa ~360 dos 2.000
+minutos gratuitos de Actions por mês. Para testar na hora: GitHub → **Actions →
+Manter o painel acordado → Run workflow**. Só funciona com o app aberto a
+visitantes; se um dia ele for restrito a e-mails em *Settings → Sharing*, o
+robô não entra.
+
 > Sem a seção `[usuarios]` no Secrets, o app publicado fica em **modo
 > demonstração**: qualquer um com o link entra como proprietário. Para mostrar
 > os dados simulados ao comprador, é exatamente o que se quer; antes de pôr
