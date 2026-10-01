@@ -21,6 +21,12 @@ if not exist "data\base\movimento.parquet" (
     "%PY%" gerar_base.py
 )
 
+rem Painel antigo ainda aberto (outra janela) sai antes: dois paineis na mesma
+rem porta = codigo velho na tela e o robo do Telegram brigando (erro 409).
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr /r /c:":8520 .*LISTENING"') do (
+    taskkill /PID %%p /F >nul 2>&1
+)
+
 echo.
 echo  ==============================================
 echo    B2 GESTAO - Painel da Rede B2 Postos
