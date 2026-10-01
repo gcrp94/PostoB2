@@ -8,6 +8,8 @@
 #   B2_NTFY_TOPICO      tópico do ntfy
 #   B2_PUSHOVER_TOKEN   token do aplicativo no Pushover
 #   B2_PUSHOVER_USUARIO chave do usuário no Pushover
+#   B2_TELEGRAM_TOKEN   token do robô do B2 Assistente (disparos "assim que chegar")
+#   B2_TELEGRAM_CHATS   conversas que recebem, separadas por vírgula (pessoas e grupos)
 # Variável:
 #   B2_URL_PAINEL       endereço do painel publicado (o "Abrir" da notificação)
 
@@ -55,11 +57,18 @@ jobs:
           B2_URL_PAINEL: ${{ vars.B2_URL_PAINEL }}
         run: python motor_alertas.py
 
+      - name: B2 Assistente — disparos "assim que os dados chegarem"
+        env:
+          B2_TELEGRAM_TOKEN: ${{ secrets.B2_TELEGRAM_TOKEN }}
+          B2_TELEGRAM_CHATS: ${{ secrets.B2_TELEGRAM_CHATS }}
+        run: python motor_alertas.py --chegada
+
       - name: Publicar a base
         run: |
           git config user.name "b2-atualizador"
           git config user.email "b2-atualizador@users.noreply.github.com"
-          git add data/base data/alertas_enviados.csv 2>/dev/null || git add data/base
+          git add data/base
+          git add data/alertas_enviados.csv data/auditoria.csv 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Base sem mudança — nada a publicar."
           else

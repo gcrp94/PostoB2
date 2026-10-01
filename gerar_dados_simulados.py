@@ -36,6 +36,20 @@ As situações plantadas para a apresentação — o motor de alertas acha todas
 5. **B2 Índio — perdendo volume**: obras na saída da BR-277 desde 08/09.
 6. **B2 Bonsucesso cresce** mês a mês; **B2 Candói** tem a melhor margem por
    litro (menos concorrência); **B2 Centro** é o maior faturamento.
+
+E as do controle de fraudes (tela 🛡️ Auditoria):
+
+7. **B2 Primavera — venda apagada depois de enviada.** Em 22/09, o envio
+   baixou a Gasolina Comum de 03/09 (−700 L) e 04/09 (−500 L), dias já
+   recebidos: fica na trilha de auditoria (`data/auditoria.csv`) e vira
+   alerta crítico. A régua não mudou, então a perda do LMC cresce junto.
+8. **B2 Bonsucesso — carga sem nota**: uma entrega de Gasolina Comum em
+   setembro entra no tanque sem nota na aba COMPRAS.
+9. **B2 Índio — nota repetida**: uma nota de Etanol lançada de novo 2 dias
+   depois.
+Além disso, a Primavera manda a planilha em horário irregular (pontualidade
+baixa no placar da reunião), e o exemplo `ALTERADA - B2 Primavera` mostra a
+auditoria pegando a alteração AO VIVO no envio pelo painel.
 """
 from __future__ import annotations
 
@@ -167,6 +181,20 @@ DIESEL_SEGURADO_BONSUCESSO = date(2026, 9, 15)       # não repassou o aumento
 OBRAS_INDIO = date(2026, 9, 8)
 # (data a partir da qual a entrega atrasa, litros da carga parcial que chegou)
 ATRASO_ENTREGA = {("B2 Candói", D): (date(2026, 9, 21), 30_000)}
+
+# Controle de fraudes — o que a 🛡️ Auditoria acha na demonstração.
+# Primavera: venda de Gasolina Comum de dias antigos baixada DEPOIS de enviada,
+# no envio com os dados até 21/09 (litros a menos por dia).
+VENDA_BAIXADA_PRIMAVERA = {date(2026, 9, 3): 700, date(2026, 9, 4): 500}
+ENVIO_DA_ALTERACAO = date(2026, 9, 21)
+# Bonsucesso: a 1ª carga de Gasolina Comum a partir desta data entra sem nota.
+CARGA_SEM_NOTA_BONSUCESSO = date(2026, 9, 10)
+# Índio: a nota da 1ª carga de Etanol a partir desta data é lançada de novo 2 dias depois.
+NOTA_REPETIDA_INDIO = date(2026, 9, 12)
+# Bonsucesso: uma correção normal (dia recente), para a trilha não ser só suspeita.
+CORRECAO_NORMAL_BONSUCESSO = (date(2026, 9, 25), E, 40)
+# A Primavera manda a planilha em horário irregular: chance de mandar cedo.
+CHANCE_CEDO_PRIMAVERA = .45
 
 
 def custo_base(produto: str, dia: date) -> float:
@@ -458,16 +486,29 @@ PASTA_EXEMPLOS = RAIZ / "exemplos_para_envio"
 
 
 def salvar_exemplos(dados_por_posto: dict):
-    """Duas planilhas para demonstrar o envio pelo painel:
+    """Três planilhas para demonstrar o envio pelo painel:
 
     * a da B2 Primavera COMPLETA até 27/09 — o posto que estava atrasado
       "põe em dia": o alerta de dados desatualizados some na hora;
+    * a da B2 Primavera ALTERADA — igual, mas com a venda de 08/09 e 09/09
+      baixada: a conferência avisa, a auditoria registra e o alerta crítico
+      aparece na Central (e no celular, no disparo "assim que chegar");
     * uma do B2 Candói COM ERRO (sem a coluna de custo médio e com estoque
       negativo) — a conferência recusa e o painel continua intacto.
     """
     PASTA_EXEMPLOS.mkdir(exist_ok=True)
-    salvar_mes("B2 Primavera", FIM.year, FIM.month, dados_por_posto["B2 Primavera"], fim=FIM,
+    for antigo in PASTA_EXEMPLOS.glob("*.xlsx"):
+        antigo.unlink()
+    primavera = dados_por_posto["B2 Primavera"]
+    salvar_mes("B2 Primavera", FIM.year, FIM.month, primavera, fim=FIM,
                destino=PASTA_EXEMPLOS / f"GERENCIAL_B2_PRIMAVERA_{FIM.month:02d}-{FIM.year}.xlsx")
+    alterada = dict(primavera)
+    alterada["movimento"] = [list(l) for l in primavera["movimento"]]
+    for l in alterada["movimento"]:
+        if l[1] == C and l[0] in (date(FIM.year, FIM.month, 8), date(FIM.year, FIM.month, 9)):
+            l[4] -= 600 if l[0].day == 8 else 400
+    salvar_mes("B2 Primavera", FIM.year, FIM.month, alterada, fim=FIM,
+               destino=PASTA_EXEMPLOS / f"ALTERADA - B2 Primavera {FIM.month:02d}-{FIM.year}.xlsx")
     candoi = dados_por_posto["B2 Candói"]
     com_erro = dict(candoi)
     com_erro["movimento"] = [list(l) for l in candoi["movimento"]]
@@ -537,7 +578,49 @@ def simular_com_historia(posto: str) -> dict:
     return melhor
 
 
-def semear_envios():
+def plantar_controle(posto: str, dados: dict) -> list[dict]:
+    """As situações 7–9 (fraude). Devolve o que vai para a trilha de auditoria."""
+    trilha = []
+    if posto == "B2 Primavera":
+        for l in dados["movimento"]:
+            if l[1] == C and l[0] in VENDA_BAIXADA_PRIMAVERA:
+                antes = l[4]
+                l[4] -= VENDA_BAIXADA_PRIMAVERA[l[0]]      # a régua (estoque final) fica igual
+                trilha.append({"posto": posto, "data": l[0], "produto": C, "campo": "Vendas", "antes": antes,
+                               "depois": l[4], "diferenca": l[4] - antes,
+                               "impacto_rs": round((l[4] - antes) * l[7], 2),
+                               "dias_depois": (ENVIO_DA_ALTERACAO - l[0]).days, "gravidade": "critico"})
+    if posto == "B2 Bonsucesso":
+        carga = next(c for c in dados["compras"] if c[1] == C and c[0] >= CARGA_SEM_NOTA_BONSUCESSO)
+        dados["compras"].remove(carga)
+        dia, produto, a_mais = CORRECAO_NORMAL_BONSUCESSO
+        l = next(l for l in dados["movimento"] if l[0] == dia and l[1] == produto)
+        trilha.append({"posto": posto, "data": dia, "produto": produto, "campo": "Vendas", "antes": l[4] - a_mais,
+                       "depois": l[4], "diferenca": a_mais, "impacto_rs": round(a_mais * l[7], 2),
+                       "dias_depois": 0, "gravidade": "normal"})
+    if posto == "B2 Índio":
+        nota = next(c for c in dados["compras"] if c[1] == E and c[0] >= NOTA_REPETIDA_INDIO)
+        dados["compras"].append([nota[0] + timedelta(days=2), *nota[1:]])
+        dados["compras"].sort(key=lambda c: c[0])
+    return trilha
+
+
+def semear_auditoria(trilha: list[dict], envios: list[list]):
+    """A trilha de auditoria da demonstração, registrada na hora do envio que
+    trouxe cada alteração (o mesmo do histórico de envios)."""
+    import pandas as pd
+
+    from src import auditoria
+
+    auditoria.ARQ_AUDITORIA.unlink(missing_ok=True)
+    quem = {"B2 Primavera": ENVIO_DA_ALTERACAO, "B2 Bonsucesso": CORRECAO_NORMAL_BONSUCESSO[0] + timedelta(days=1)}
+    for posto, ate in quem.items():
+        mudancas = pd.DataFrame([t for t in trilha if t["posto"] == posto])
+        envio = next(e for e in envios if e[1] == posto and e[7] == f"dados até {ate:%d/%m}")
+        auditoria.registrar(mudancas, "Envio pelo painel", envio[3], quando=envio[0])
+
+
+def semear_envios() -> list[list]:
     """Histórico de envios simulado: cada mês fechado enviado no 2º dia do mês
     seguinte e, em setembro, um envio por dia (cada um substitui o anterior)."""
     import csv
@@ -558,7 +641,11 @@ def semear_envios():
             d = date(ano, mes, 1)
             while d <= fim:
                 envio = d + timedelta(days=atraso)
-                quando = datetime(envio.year, envio.month, envio.day, h, int(rng.integers(0, 59)) if d < fim else m)
+                hora = h
+                if posto == "B2 Primavera" and d < fim:      # horário irregular
+                    hora = 9 if rng.random() < CHANCE_CEDO_PRIMAVERA else int(rng.integers(15, 20))
+                quando = datetime(envio.year, envio.month, envio.day, hora,
+                                  int(rng.integers(0, 59)) if d < fim else m)
                 resultado = "Processado" if d == fim else "Substituído"
                 linhas.append([quando, posto, pasta, login, f"{mes:02d}/{ano}", nome, resultado,
                                f"dados até {d:%d/%m}"])
@@ -569,15 +656,20 @@ def semear_envios():
         w.writerow(["data_hora", "posto", "pasta", "usuario", "periodo", "arquivo", "resultado", "detalhe"])
         for l in linhas:
             w.writerow([l[0].strftime("%Y-%m-%d %H:%M"), *l[1:]])
+    return linhas
 
 
 def main():
     print("Gerando 12 meses de planilhas simuladas da rede B2 Postos...")
     salvar_cadastro()
     salvar_modelo()
-    todos = {}
+    # A base anterior sai: comparada com a nova, viraria alteração na auditoria.
+    import shutil
+    shutil.rmtree(PASTA_DADOS / "base", ignore_errors=True)
+    todos, trilha = {}, []
     for posto, cfg in POSTOS.items():
         dados = simular_com_historia(posto)
+        trilha += plantar_controle(posto, dados)
         todos[posto] = dados
         n = 0
         for ano, mes in meses():
@@ -587,7 +679,8 @@ def main():
         final = {l[1]: l[5] for l in dados["movimento"] if l[0] == fim}
         resumo = "  ".join(f"{p.split()[-1][:6]} {final[p] / cfg['tanques'][p]:.0%}" for p in P.PRODUTOS)
         print(f"  {posto:<14} {n} planilhas · tanques em {fim:%d/%m}: {resumo}")
-    semear_envios()
+    envios = semear_envios()
+    semear_auditoria(trilha, envios)
     salvar_exemplos(todos)
     # Marca que a base é a da demonstração: os testes das histórias plantadas
     # só rodam com ela (com dados reais, eles não fazem sentido).

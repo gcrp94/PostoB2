@@ -28,9 +28,9 @@ from src import alertas as al  # noqa: E402
 from src import analytics as an  # noqa: E402
 from src import armazenamento as arm  # noqa: E402
 from src import assistente_ui  # noqa: E402
-from src import auth, base, charts, notificacoes, theme, ui, validacao  # noqa: E402
+from src import antifraude, auditoria, auth, base, charts, notificacoes, reuniao, theme, ui, validacao  # noqa: E402
 from src.formatting import (  # noqa: E402
-    format_brl, format_brl_curto, format_decimal, format_int, format_litros, format_litros_curto,
+    format_brl, format_brl_curto, format_decimal, format_int, format_litros, format_litros_curto, format_pct,
     format_pct_simples, format_rs_litro, nome_mes,
 )
 
@@ -57,9 +57,10 @@ def carregar(assinatura: tuple) -> dict:
     df = an.preparar(b.movimento)
     ordem = [p for p in theme.POSTOS if p in set(b.postos["posto"])] + \
             [p for p in b.postos["posto"] if p not in theme.POSTOS]
+    aud = auditoria.ler()
     return {"df": df, "compras": b.compras, "despesas": b.despesas, "postos": b.postos.set_index("posto"),
-            "tanques": b.tanques, "info": b.info, "ordem": ordem,
-            "alertas": al.gerar(df, b.tanques, ordem)}
+            "tanques": b.tanques, "info": b.info, "ordem": ordem, "auditoria": aud,
+            "envios": arm.ler_envios(), "alertas": al.gerar(df, b.tanques, ordem, auditoria=aud)}
 
 
 if not (base.PASTA_BASE / "movimento.parquet").exists():
@@ -68,7 +69,7 @@ if not (base.PASTA_BASE / "movimento.parquet").exists():
                "das planilhas. Para a apresentação, o **Gerar Dados Simulados.bat** cria tudo.")
     st.stop()
 
-D = carregar(base.assinatura())
+D = carregar(assistente_ui.assinatura_dados())
 DF: pd.DataFrame = D["df"]
 POSTOS: list[str] = D["ordem"]
 ALERTAS: list[al.Alerta] = D["alertas"]
@@ -80,8 +81,23 @@ def grafico(fig):
     st.plotly_chart(fig, width="stretch", config=charts.CFG)
 
 
+PAGINA_AUDITORIA = "🛡️ Auditoria"
+PAGINA_REUNIAO = "📋 Reunião de Gerentes"
+
+
+def rotulo_abrir(a) -> str:
+    if a.aba == "Auditoria":
+        return "Ver na Auditoria →" if usuario.ve_rede else "Avisado ao proprietário"
+    return f"Abrir {a.posto} · {a.aba} →"
+
+
 def ir_para(pagina: str, aba: str | None = None, posto: str | None = None):
-    """Callback dos botões "Abrir →": troca o menu e a aba antes do rerun."""
+    """Callback dos botões "Abrir →": troca o menu e a aba antes do rerun.
+    Alerta de auditoria não abre o posto: abre a tela de Auditoria."""
+    if aba == "Auditoria" and usuario.ve_rede:
+        st.session_state["menu_gestao"] = PAGINA_AUDITORIA
+        st.session_state["menu_paineis"] = None
+        return
     if usuario.ve_rede:
         st.session_state["menu_paineis"] = pagina
         st.session_state["menu_gestao"] = None
@@ -153,10 +169,11 @@ def lateral():
               f'<div class="perfil">{usuario.perfil_nome} · <b>{ui.esc(onde)}</b></div></div>')
 
         if usuario.ve_rede:
-            paineis = ["🎯 Central do Proprietário", "🏠 Visão da Rede"] + [f"⛽ {p}" for p in POSTOS]
+            paineis = ["🎯 Central do Proprietário", "🏠 Visão da Rede", PAGINA_REUNIAO] + \
+                      [f"⛽ {p}" for p in POSTOS]
             n_alertas = sum(a.nivel in ("critico", "atencao") for a in ALERTAS)
-            gestao = ["📤 Alimentar dados", f"🔔 Alertas ({n_alertas})", "📑 Atualizações", "💬 B2 Assistente",
-                      "⚙️ Administração"]
+            gestao = ["📤 Alimentar dados", f"🔔 Alertas ({n_alertas})", PAGINA_AUDITORIA, "📑 Atualizações",
+                      "💬 B2 Assistente", "⚙️ Administração"]
             st.session_state.setdefault("menu_paineis", paineis[0])
             st.session_state.setdefault("menu_gestao", None)
             # O rótulo dos alertas muda com a contagem: realinha a escolha salva.
@@ -250,7 +267,7 @@ def pagina_central():
         for i, a in enumerate(alertas_n):
             with cols[i % 2]:
                 ui.md(ui.alerta_html(a))
-                st.button(f"Abrir {a.posto} · {a.aba} →", key=f"central_{i}_{a.chave}", type="tertiary",
+                st.button(rotulo_abrir(a), key=f"central_{i}_{a.chave}", type="tertiary",
                           on_click=ir_para, args=(f"⛽ {a.posto}", a.aba, a.posto))
 
     lista(criticos, "🔴 Exige ação", "Resolver hoje.")
@@ -445,7 +462,9 @@ def pagina_posto(posto: str):
           f'<span class="nota">{envio_txt} · dados até {ultima_p:%d/%m/%Y} · {texto_periodo(per)}, '
           f'comparado com os mesmos dias do mês anterior</span></div>')
 
-    meus = [a for a in ALERTAS if a.posto == posto]
+    # O alerta de auditoria é do proprietário: o gerente já foi avisado, no
+    # envio, de que a alteração fica registrada.
+    meus = [a for a in ALERTAS if a.posto == posto and (usuario.ve_rede or a.aba != "Auditoria")]
     n_prob = sum(a.nivel in ("critico", "atencao") for a in meus)
     rotulos = [a if a != "Alertas" else (f"Alertas ({n_prob})" if n_prob else "Alertas") for a in ABAS_POSTO]
     # A aba escolhida mora em "aba_<posto>" — é o que os botões "Abrir →" da
@@ -754,7 +773,10 @@ def aba_alertas_posto(posto, meus):
         for i, a in enumerate(lista):
             with cols[i % 2]:
                 ui.md(ui.alerta_html(a, mostrar_posto=False))
-                if a.aba != "Alertas":
+                if a.aba == "Auditoria":
+                    st.button("Ver na Auditoria →", key=f"al_{posto}_{i}_{a.chave}", type="tertiary",
+                              on_click=ir_para, args=(PAGINA_AUDITORIA, "Auditoria", posto))
+                elif a.aba != "Alertas":
                     st.button(f"Ver {a.aba} →", key=f"al_{posto}_{i}_{a.chave}", type="tertiary",
                               on_click=lambda aba=a.aba: st.session_state.update({f"aba_{posto}": aba}))
 
@@ -961,7 +983,7 @@ def pagina_alertas():
         for i, a in enumerate(grupo):
             with cols[i % 2]:
                 ui.md(ui.alerta_html(a))
-                st.button(f"Abrir {a.posto} · {a.aba} →", key=f"pa_{i}_{a.chave}", type="tertiary",
+                st.button(rotulo_abrir(a), key=f"pa_{i}_{a.chave}", type="tertiary",
                           on_click=ir_para, args=(f"⛽ {a.posto}", a.aba, a.posto))
 
     ui.secao("📱 Alertas no celular", "O motor de alertas roda sozinho depois de cada atualização — o dono "
@@ -993,6 +1015,167 @@ def pagina_alertas():
                                    ui.esc(r["resumo"]), ui.esc(r["canal"])] for _, r in h.iterrows()]))
 
 
+# ============================================================ auditoria =====
+GRAVIDADE = {"normal": ("ok", "Correção normal"), "atencao": ("atencao", "Atenção"),
+             "critico": ("critico", "Crítico")}
+
+
+def sinal_html(s: antifraude.Sinal) -> str:
+    return (f'<div class="alerta {s.nivel}"><div class="a-topo">'
+            f'<span class="a-titulo">{s.icone} {ui.esc(s.titulo.upper())}</span>'
+            f'<span class="a-posto">{ui.esc(s.posto)}</span></div>'
+            f'<div class="a-resumo">{ui.esc(s.detalhe)}</div>'
+            f'<div class="a-det">Por que importa: {ui.esc(s.porque)}</div></div>')
+
+
+def pagina_auditoria():
+    per = cabecalho(PAGINA_AUDITORIA, "Cruzamentos que merecem conferência. Nenhum sinal é acusação: é "
+                    "<b>confira isto</b>.")
+    aud = D["auditoria"]
+    sinais = antifraude.sinais(DF, D["compras"], aud, POSTOS, per)
+    sus = auditoria.suspeitas(aud)
+    baixadas = sus[(sus["campo"] == "Vendas") & (sus["diferenca"] < 0)] if len(sus) else sus
+    dias_alt = int(sus.groupby("posto")["data"].nunique().sum()) if len(sus) else 0
+    criticos = sum(s.nivel == "critico" for s in sinais)
+    ui.grade_kpis([
+        ui.kpi("Dias alterados depois de enviados", format_int(dias_alt),
+               f"{sus['posto'].nunique()} posto(s) · últimos 30 dias" if dias_alt else "nenhum nos últimos 30 dias",
+               "✏️", "alerta-critico" if dias_alt else ""),
+        ui.kpi("Venda apagada depois", format_brl_curto(-baixadas["impacto_rs"].sum()) if len(baixadas) else "R$ 0",
+               f"{format_litros(-baixadas['diferenca'].sum())} em dias já enviados" if len(baixadas)
+               else "nenhuma venda reduzida", "💸"),
+        ui.kpi("Sinais críticos", format_int(criticos), texto_periodo(per), "🔴"),
+        ui.kpi("Sinais de atenção", format_int(len(sinais) - criticos), texto_periodo(per), "🟡"),
+    ])
+
+    ui.secao("O que conferir", "Do mais grave ao mais leve. Cada cartão diz o que foi achado e por que importa.")
+    filtro = st.segmented_control("Posto", ["Toda a rede"] + POSTOS, default="Toda a rede", key="aud_filtro",
+                                  label_visibility="collapsed") or "Toda a rede"
+    lista = sinais if filtro == "Toda a rede" else [s for s in sinais if s.posto == filtro]
+    if lista:
+        cols = st.columns(2)
+        for i, s in enumerate(lista):
+            with cols[i % 2]:
+                ui.md(sinal_html(s))
+    else:
+        st.success("Nenhum sinal no período. 👏")
+
+    ui.secao("Trilha de alterações", "Tudo o que mudou em dados já recebidos: quando, quem enviou, por onde e "
+             "quanto mexeu.")
+    with st.container(border=True):
+        normais = st.toggle("Mostrar também as correções normais (dia recente)", key="aud_normais")
+        trilha = aud if normais else aud[aud["gravidade"] != "normal"]
+        if filtro != "Toda a rede":
+            trilha = trilha[trilha["posto"] == filtro]
+        if trilha.empty:
+            ui.nota("Nenhuma alteração registrada." if aud.empty else
+                    "Nenhuma alteração suspeita — só correções do dia a dia (ligue a chave acima para ver).")
+        else:
+            linhas = [[f"{r['registrado_em']:%d/%m %H:%M}", ui.esc(r["posto"].replace("B2 ", "")),
+                       ui.esc(r["usuario"] or "—"), ui.esc(r["origem"]), ui.esc(auditoria.descrever(r)),
+                       ui.pill(*GRAVIDADE.get(r["gravidade"], ("neutro", r["gravidade"])))]
+                      for _, r in trilha.head(150).iterrows()]
+            ui.md('<div style="max-height:420px;overflow-y:auto">' + ui.tabela_html(
+                [("Registrado", False), ("Posto", False), ("Enviado por", False), ("Por onde", False),
+                 ("O que mudou", False), ("Gravidade", False)], linhas) + "</div>")
+
+    with st.expander("Como a auditoria funciona"):
+        ui.md(f"""
+* **Toda base nova é comparada com a anterior**, posto × dia × combustível. Dia novo é rotina; dia que já
+  tinha chegado e mudou vai para a trilha, com o valor antes e depois.
+* **Gravidade:** mexer no dia de ontem é correção normal; dia com {auditoria.DIAS_CORRECAO_NORMAL}+ dias é
+  atenção; dia com {auditoria.DIAS_CRITICO}+ dias ou de **mês já fechado** é crítico — e vira alerta na
+  Central e no celular.
+* **O gerente é avisado no envio** de que a planilha altera dias já recebidos e que isso fica registrado. Só
+  esse aviso já desencoraja o "ajuste".
+* **Baixar a venda sem mexer na régua aparece como perda no LMC**: os dois sinais se confirmam.
+* Os outros cruzamentos usam o que o posto já manda: notas × entradas no tanque, nota repetida, valor da
+  nota, custo médio × notas, venda abaixo do custo e números redondos demais.
+""")
+
+
+# ============================================================ reunião =======
+def placar_html(p: pd.DataFrame, rede: pd.Series, per: an.Periodo) -> str:
+    marca = {"critico": "■ ", "atencao": "▲ "}
+    cab = "".join(f"<th>{rot}<small>{regua}</small></th>" for _, rot, regua, _ in reuniao.INDICADORES)
+    corpo = []
+    for _, r in p.iterrows():
+        celulas = []
+        for coluna, *_ in reuniao.INDICADORES:
+            s = reuniao.situacao(coluna, r[coluna], rede)
+            celulas.append(f'<td class="cel {s}">{marca.get(s, "")}{reuniao.formatar(coluna, r[coluna])}</td>')
+        ate = f" · até {r['ate']:%d/%m}" if r["ate"] < per.fim else ""
+        corpo.append(f'<tr><td class="unidade">{ui.esc(r["posto"].replace("B2 ", ""))}'
+                     f'<small>{format_litros_curto(r["litros"])}{ate}</small></td>{"".join(celulas)}</tr>')
+    corpo.append('<tr class="rede"><td class="unidade">Rede<small>' + format_litros_curto(rede["litros"])
+                 + "</small></td>" + "".join(f"<td>{reuniao.formatar(c, rede[c])}</td>"
+                                             for c, *_ in reuniao.INDICADORES) + "</tr>")
+    return (f'<div class="tabela-wrap"><table class="tabela matriz placar"><thead><tr><th></th>{cab}</tr></thead>'
+            f'<tbody>{"".join(corpo)}</tbody></table></div>'
+            '<div class="nota" style="margin-top:.4rem">■ crítico · ▲ atenção · sem marca: dentro da régua. '
+            'Margem e despesa comparadas com a média da rede (o perfil de cada posto pesa); perda, aditivada e '
+            'pontualidade, com meta fixa.</div>')
+
+
+def pagina_reuniao():
+    per = cabecalho(PAGINA_REUNIAO, "O placar do mês para a conversa com cada gerente — o que ele controla.")
+    p = reuniao.placar(DF, D["despesas"], D["envios"], D["auditoria"], per, POSTOS)
+    if p.empty:
+        st.info("Sem dados no período.")
+        return
+    rede = reuniao.medias_rede(p)
+    ui.secao("Placar das gerências", f"{texto_periodo(per)} · cada posto até o último dia que enviou, comparado "
+             "com os mesmos dias do mês anterior")
+    ui.md(placar_html(p, rede, per))
+
+    ui.secao("🏆 Destaques do mês")
+    cartoes = []
+    for coluna, rotulo, icone in (("margem_litro", "Melhor margem por litro", "📈"),
+                                  ("mix_aditivada", "Mais aditivada vendida", "⛽"),
+                                  ("var_litros", "Maior crescimento", "🚀"),
+                                  ("pontualidade", "Planilha mais pontual", "⏱️")):
+        # Empate no topo (todos com 100% de pontualidade) não é destaque de ninguém.
+        if p[coluna].notna().any() and (p[coluna] == p[coluna].max()).sum() == 1:
+            m = p.loc[p[coluna].idxmax()]
+            cartoes.append(ui.kpi(rotulo, ui.esc(m["posto"].replace("B2 ", "")),
+                                  reuniao.formatar(coluna, m[coluna]), icone))
+    ui.grade_kpis(cartoes)
+
+    ui.secao("Pauta por gerente", "O que levar para a conversa, do mais grave ao elogio. A ficha sai pronta "
+             "para imprimir, com espaço para os combinados.")
+    curtos = {x.replace("B2 ", ""): x for x in p["posto"]}
+    escolha = st.segmented_control("Gerente", list(curtos), default=list(curtos)[0], key="reuniao_posto",
+                                   label_visibility="collapsed") or list(curtos)[0]
+    posto = curtos[escolha]
+    linha = p[p["posto"] == posto].iloc[0]
+    gerente = next((u.nome for u, _ in auth.usuarios().values() if u.posto == posto), "")
+    with st.container(border=True):
+        ui.bloco_titulo(f"⛽ {posto}", f"Gerente: {ui.esc(gerente)}" if gerente else "")
+        ui.md('<ul class="pauta">' + "".join(f"<li>{ui.esc(i)}</li>" for i in reuniao.pauta(linha, rede, p))
+              + "</ul>")
+        st.download_button("⬇️ Baixar a ficha da reunião", type="primary",
+                           data=reuniao.ficha_html(linha, rede, p, per, auth.modo_demo()),
+                           file_name=f"Reuniao {posto} {per.mes:02d}-{per.ano}.html", mime="text/html")
+
+    with st.expander("Por que estes indicadores"):
+        ui.md(f"""
+* **Volume** contra os mesmos dias do mês anterior — atendimento, pista, concorrência.
+* **Margem bruta por litro** contra a média da rede — preço de bomba e compra bem feita.
+* **Aditivada na gasolina** (meta {format_pct_simples(reuniao.META_MIX_ADITIVADA, 0)}) — é venda ativa do
+  frentista: margem que não depende de subir preço.
+* **Perda no LMC** (meta até {format_pct_simples(reuniao.META_PERDA, 2)}) — cuidado com tanque e bomba, e o
+  primeiro sinal de desvio.
+* **Despesa e resultado por litro** — o posto como negócio, não só como bomba.
+* **Planilha até as {reuniao.HORA_LIMITE_ENVIO}h** (meta {format_pct_simples(reuniao.META_PONTUALIDADE, 0)}
+  dos dias) — sem dado no horário, o dono decide no escuro.
+* **Dias com estoque crítico** — pedido feito tarde à distribuidora.
+* **Dias alterados depois de enviados** — da trilha de auditoria. O ideal é zero.
+
+O placar também vai para o celular: no **💬 B2 Assistente**, o disparo "📋 Placar das gerências" sai toda
+segunda às 8h (ou peça "reunião" ao robô).
+""")
+
+
 # ============================================================ admin =========
 def pagina_admin():
     ui.topo("⚙️ Administração", "Usuários, regras dos alertas e a saúde da base.")
@@ -1019,6 +1202,8 @@ def pagina_admin():
             ["🟡 Venda fora do padrão", f"últimos 7 dias {format_pct_simples(-al.VENDA_ABAIXO_ATENCAO, 0)} "
                                        "abaixo da média de 8 semanas"],
             ["🟡 Dados desatualizados", f"{al.DIAS_SEM_ENVIO} dias atrás dos outros postos"],
+            ["🔴 Dados alterados depois de recebidos", f"dia já recebido mudou {auditoria.DIAS_CRITICO}+ dias "
+                                                       "depois, ou mês já fechado"],
         ]
         ui.md(ui.tabela_html([("Alerta", False), ("Dispara quando", False)], regras))
     with st.container(border=True):
@@ -1065,6 +1250,10 @@ if pagina.startswith("🎯"):
     pagina_central()
 elif pagina.startswith("💬") and usuario.ve_rede:
     assistente_ui.pagina(DF, D["tanques"], POSTOS)
+elif pagina.startswith("🛡️") and usuario.ve_rede:
+    pagina_auditoria()
+elif pagina.startswith("📋") and usuario.ve_rede:
+    pagina_reuniao()
 elif pagina.startswith("🏠"):
     pagina_rede()
 elif pagina == "⛽ Meu Posto":

@@ -58,13 +58,17 @@ src/
   assistente.py     B2 Assistente: entende a pergunta e monta a resposta.
   assistente_telegram.py / assistente_ntfy.py   os transportes do celular.
   assistente_ui.py  tela 💬 B2 Assistente e os ouvintes (um por processo).
+  assistente_agenda.py  disparos automáticos (horário, chegada, cobrança).
+  auditoria.py      trilha do que mudou em dado já recebido.
+  antifraude.py     sinais de fraude (tela 🛡️ Auditoria).
+  reuniao.py        placar, metas e pauta da reunião de gerentes.
   auth.py           Usuários, perfis, PBKDF2, modo demonstração.
   charts.py         Plotly: gramática única, números em pt-BR via Python.
   ui.py             Cartões, tanques, tabelas, alertas em HTML.
   theme.py          Cores e ícones — fonte única de verdade.
   formatting.py     R$, L, %, p.p. no padrão brasileiro.
 assets/style.css    O visual (variáveis vindas do theme.py).
-tests/test_painel.py
+tests/test_painel.py, test_controle.py, test_assistente*.py
 .github/workflows/atualizar-base.yml
 ```
 
@@ -120,8 +124,8 @@ encolhe o rótulo até sumir).
 **Dados simulados** (`gerar_dados_simulados.py`): sorteio próprio por posto
 (`zlib.crc32` do nome — mexer num não muda os outros). O diesel do Candói
 precisa terminar com ~1 dia de autonomia: o gerador procura o tamanho da
-carga parcial que produz isso (`simular_com_historia`). As 6 situações
-plantadas estão no docstring do gerador e em `test_motor_acha_as_situacoes_da_demonstracao`.
+carga parcial que produz isso (`simular_com_historia`). As 9 situações
+plantadas estão no docstring do gerador e em `test_motor_acha_as_situacoes_da_demonstracao` e `test_auditoria_acha_as_fraudes_plantadas`.
 
 ---
 
@@ -157,6 +161,42 @@ complicado e pediu algo mais fácil "que permita interação".
 * O painel ficou fora do ar por um erro de sintaxe no `assistente.py` da
   primeira versão (o `app.py` importa o módulo). Os testes pegariam: rode
   `python -m pytest` antes de apresentar.
+
+---
+
+## Controle de fraudes, reunião e disparos (30/09/2026)
+
+Pedido do usuário: disparos programados no B2 Assistente (horário, chegada
+dos dados, cobrança com horário limite) para pessoas e grupos; alertas de
+fraude, em especial **dado já recebido que foi alterado depois**; indicadores
+para reunião com gerentes — **sem poluir o BI**.
+
+* **`src/auditoria.py`** — `base.gravar` compara a base nova com a anterior
+  (posto × dia × combustível) ANTES da troca e anota em `data/auditoria.csv`.
+  Dia novo não é alteração; linha que sumiu é. Gravidade pela idade do dia
+  (normal < 2 dias, atenção, crítico ≥ 7 dias ou mês fechado). A conferência
+  do envio (`validacao`) avisa o gerente antes. O `.csv` vai para o Git (o
+  Actions o publica junto com a base).
+* **`src/antifraude.py`** — os cruzamentos (LMC, notas × tanque, nota repetida,
+  valor de nota, custo médio × notas, abaixo do custo, números redondos).
+  A 2ª via de nota repetida não vira também "nota sem entrada".
+* **`src/reuniao.py`** — placar, metas, pauta e a ficha HTML. Margem e
+  despesa contra a média da rede; perda, aditivada e pontualidade com meta.
+* **Anti-poluição:** a Central recebe UM alerta por posto com dado alterado
+  (`alertas.regra_auditoria`); o resto fica em 🛡️ Auditoria (Gestão). O
+  placar fica em 📋 Reunião de Gerentes (Painéis) e só pinta as exceções. O
+  alerta de auditoria NÃO aparece para o gerente (ele já foi avisado no envio).
+* **`src/assistente_agenda.py`** — agenda em `data/assistente_agenda.json`
+  (sem segredo), "já mandei hoje" no `config_assistente.local.json`. O
+  `Agendador` é uma thread do painel (não chama Streamlit). Disparo de
+  horário só sai até 15 min depois da hora. Na nuvem, o commit da base
+  reinicia o app, então o Actions manda os de "chegada" (`--chegada`).
+* **Grupos do Telegram:** `my_chat_member` registra o grupo (id negativo) e
+  manda boas-vindas; teclado fixo só em conversa particular.
+* `B2_ASSISTENTE_DESLIGADO=1` sobe um segundo painel (teste) sem ligar o
+  robô — dois ouvintes no mesmo robô = 409 e respostas duplicadas.
+* O gerador apaga `data/base` antes de remontar (senão a troca de cenário
+  viraria "alteração" na auditoria) e semeia a trilha com a hora do envio.
 
 ---
 

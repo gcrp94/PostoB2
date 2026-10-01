@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src import etl
+from src import auditoria, etl
 
 RAIZ = Path(__file__).resolve().parent.parent
 PASTA_DADOS = RAIZ / "data"
@@ -29,9 +29,20 @@ def construir(pasta_dados: Path = PASTA_DADOS) -> etl.Resultado:
     return etl.ler_tudo(pasta_dados)
 
 
-def gravar(res: etl.Resultado, pasta_base: Path = PASTA_BASE) -> dict:
+def gravar(res: etl.Resultado, pasta_base: Path = PASTA_BASE, origem: str | None = "Atualizar Dados",
+           usuario: str = "") -> dict:
+    """Grava a base nova e, antes de trocar, compara com a anterior: o que já
+    tinha sido recebido e mudou vai para a trilha de auditoria. `origem=None`
+    pula a comparação (base nova do zero, como na demonstração)."""
     if res.movimento.empty:
         raise ValueError("Nenhum movimento encontrado nas planilhas — a base não foi gravada.")
+    mudancas = None
+    anterior = pasta_base / "movimento.parquet"
+    if origem is not None and anterior.exists():
+        try:
+            mudancas = auditoria.comparar(pd.read_parquet(anterior), res.movimento)
+        except Exception:
+            mudancas = None          # auditoria nunca impede a base de ser gravada
     temp = pasta_base.with_name(pasta_base.name + "_nova")
     if temp.exists():
         shutil.rmtree(temp)
@@ -54,6 +65,7 @@ def gravar(res: etl.Resultado, pasta_base: Path = PASTA_BASE) -> dict:
     temp.rename(pasta_base)
     if antiga.exists():
         shutil.rmtree(antiga, ignore_errors=True)
+    info["alteracoes"] = auditoria.registrar(mudancas, origem or "", usuario) if mudancas is not None else 0
     return info
 
 

@@ -3,6 +3,7 @@
     python motor_alertas.py            # envia os alertas novos
     python motor_alertas.py --listar   # só mostra, não envia nada
     python motor_alertas.py --teste    # manda uma notificação de teste
+    python motor_alertas.py --chegada  # disparos "assim que chegar" do B2 Assistente
 
 Roda sozinho no fim do `Atualizar Dados.bat` e, publicado, no GitHub Actions
 depois de cada planilha recebida. O dono não precisa estar com o painel
@@ -15,6 +16,11 @@ muda e ele avisa de novo — uma vez por dia, não a cada planilha.
 
 As regras são as MESMAS do painel (`src/alertas.py`): o celular nunca mostra
 um alerta que a Central não mostra.
+
+`--chegada`: publicado, a planilha nova chega pelo GitHub e o commit da base
+reinicia o app da nuvem — o agendador que roda dentro do painel não vê a
+chegada. Então o Actions manda, ele mesmo, os disparos de "assim que os dados
+chegarem" da agenda do B2 Assistente (Telegram, para todas as conversas).
 """
 from __future__ import annotations
 
@@ -26,7 +32,7 @@ from pathlib import Path
 
 from src import alertas as al
 from src import analytics as an
-from src import base
+from src import auditoria, base
 from src import notificacoes as notif
 
 RAIZ = Path(__file__).resolve().parent
@@ -56,7 +62,7 @@ def anotar(alerta: al.Alerta, canal: str, retorno: str):
 def gerar() -> list[al.Alerta]:
     b = base.carregar()
     df = an.preparar(b.movimento)
-    return al.gerar(df, b.tanques, b.postos["posto"].tolist())
+    return al.gerar(df, b.tanques, b.postos["posto"].tolist(), auditoria=auditoria.ler())
 
 
 def main() -> int:
@@ -65,7 +71,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--listar", action="store_true", help="só mostra os alertas, não envia")
     ap.add_argument("--teste", action="store_true", help="envia uma notificação de teste")
+    ap.add_argument("--chegada", action="store_true", help="disparos 'assim que chegar' do B2 Assistente")
     args = ap.parse_args()
+
+    if args.chegada:
+        from src import assistente_agenda
+        for linha in assistente_agenda.disparar_chegada_fora_do_painel():
+            print(linha)
+        return 0
 
     cfg = notif.config()
     canal, pronto, motivo = notif.canal_pronto(cfg)

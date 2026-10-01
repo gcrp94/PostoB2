@@ -37,8 +37,11 @@ from src.formatting import (
 from src.theme import COMBUSTIVEIS, ICONES_COMBUSTIVEL
 
 # Ordem = prioridade: "como está o estoque do Candói" é estoque, não resumo.
-ACOES = ("alertas", "estoque", "vendas", "margem", "resumo", "ajuda")
+ACOES = ("alertas", "auditoria", "pendencias", "reuniao", "estoque", "vendas", "margem", "resumo", "ajuda")
 SINONIMOS = {
+    "auditoria": ("auditoria", "fraude", "fraudes", "alteracoes", "alterados", "alterado", "desvio"),
+    "pendencias": ("pendencias", "pendentes", "pendente", "atrasados", "atrasado", "cobranca"),
+    "reuniao": ("reuniao", "placar", "gerentes", "gerencia", "gerencias", "ranking"),
     "resumo": ("resumo", "como esta", "como vai", "situacao", "painel", "visao"),
     "estoque": ("estoque", "tanque", "tanques", "autonomia", "combustivel", "reposicao"),
     "vendas": ("vendas", "venda", "vendeu", "faturamento", "faturou", "litros"),
@@ -331,7 +334,8 @@ def _texto_ajuda(postos: list[str], entendeu: bool = True) -> str:
     return "\n".join([
         abertura, "",
         "📊 resumo centro", "📦 estoque candói", "💰 vendas primavera", "📈 margem bonsucesso",
-        "🏪 resumo rede   ·   🚨 alertas", "",
+        "🏪 resumo rede   ·   🚨 alertas",
+        "📋 reunião   ·   🛡️ auditoria   ·   ⏳ pendências", "",
         f"Postos: {nomes}.", "Ou toque nos botões abaixo.",
     ])
 
@@ -347,10 +351,69 @@ RESPOSTAS_REDE = {"resumo": _rede_resumo, "estoque": _rede_estoque, "vendas": _r
                   "margem": _rede_margem, "alertas": _alertas}
 
 
+def pendencias(df: pd.DataFrame, postos: list[str], referencia=None) -> list[tuple[str, object, int]]:
+    """Postos cujo último dado está antes de `referencia` (padrão: o posto mais
+    adiantado da rede). Devolve (posto, último dia, dias de atraso)."""
+    ref = pd.Timestamp(referencia) if referencia is not None else df["data"].max()
+    saida = []
+    for p in postos:
+        g = df[df["posto"] == p]
+        ultima = g["data"].max() if len(g) else None
+        atraso = (ref - ultima).days if ultima is not None else 99
+        if atraso >= 1:
+            saida.append((p, ultima, atraso))
+    return saida
+
+
+def _pendencias(df, postos, simulado, referencia=None) -> Resposta:
+    pend = pendencias(df, postos, referencia)
+    ref = pd.Timestamp(referencia) if referencia is not None else df["data"].max()
+    linhas = [f"📅 Esperado: dados até {ref:%d/%m}" + (" · dados simulados" if simulado else ""), ""]
+    if not pend:
+        linhas.append("🟢 Todos os postos estão em dia.")
+    for p, ultima, atraso in pend:
+        quando = f"último dado de {ultima:%d/%m}" if ultima is not None else "nenhuma planilha"
+        linhas.append(f"{'🔴' if atraso >= 2 else '🟡'} {_curto(p)}: {quando} ({atraso} dia{'s' if atraso > 1 else ''})")
+    em_dia = [_curto(p) for p in postos if p not in {x[0] for x in pend}]
+    if pend and em_dia:
+        linhas += ["", f"🟢 Em dia: {', '.join(em_dia)}."]
+    return Resposta("⏳ Planilhas pendentes" if pend else "✅ Planilhas em dia", "\n".join(linhas))
+
+
+def _reuniao(df, postos, simulado, extras) -> Resposta:
+    from src import reuniao
+    ref = df["data"].max().date()
+    per = an.periodo(df, ref.year, ref.month)
+    p = reuniao.placar(df, extras.get("despesas"), extras.get("envios"), extras.get("auditoria"), per, postos)
+    texto = reuniao.texto_placar(p, per) + ("\n\nDados simulados." if simulado else "")
+    return Resposta("📋 Placar das gerências", texto, (("🚨 Alertas", "alertas"), ("🛡️ Auditoria", "auditoria")))
+
+
+def _auditoria(df, postos, simulado, extras, posto=None) -> Resposta:
+    from src import antifraude
+    sinais = antifraude.sinais(df, extras.get("compras"), extras.get("auditoria"), postos)
+    if posto:
+        sinais = [s for s in sinais if s.posto == posto]
+    linhas = [f"📅 Mês em foco até {df['data'].max():%d/%m}" + (" · dados simulados" if simulado else ""), ""]
+    if not sinais:
+        linhas.append("🟢 Nenhum sinal de fraude para conferir.")
+    for s in sinais[:8]:
+        linhas.append(f"{s.icone} {_curto(s.posto)} — {s.titulo}")
+        linhas.append(f"    {s.detalhe}")
+    if len(sinais) > 8:
+        linhas += ["", f"… e mais {len(sinais) - 8} no painel (🛡️ Auditoria)."]
+    return Resposta(f"🛡️ Auditoria — {posto or 'Rede B2'}", "\n".join(linhas), (("🚨 Alertas", "alertas"),))
+
+
 def responder(comando: str, df: pd.DataFrame, tanques: pd.DataFrame, postos: list[str],
-              simulado: bool = True, alertas: list[al.Alerta] | None = None) -> Resposta:
-    """Consulta a base sem modificá-la. Texto não entendido -> ValueError com a ajuda."""
+              simulado: bool = True, alertas: list[al.Alerta] | None = None,
+              extras: dict | None = None) -> Resposta:
+    """Consulta a base sem modificá-la. Texto não entendido -> ValueError com a ajuda.
+
+    `extras` traz o que só algumas respostas usam: despesas, envios, compras e
+    a trilha de auditoria (placar da reunião, auditoria)."""
     acao, posto = entender(comando, postos)
+    extras = extras or {}
     if acao == "ajuda":
         return Resposta("🤖 B2 Gestão", _texto_ajuda(postos),
                         (("🏪 Resumo da rede", "resumo rede"), ("🚨 Alertas", "alertas")))
@@ -358,8 +421,14 @@ def responder(comando: str, df: pd.DataFrame, tanques: pd.DataFrame, postos: lis
         return Resposta("🤖 B2 Gestão", "Ainda não há dados na base. Envie as planilhas dos postos.")
     if posto is not None and df[df["posto"] == posto].empty:
         return Resposta(f"⛽ {posto}", f"{posto}: ainda não há planilha deste posto na base.")
+    if acao == "pendencias":
+        return _pendencias(df, postos, simulado, extras.get("referencia"))
+    if acao == "reuniao":
+        return _reuniao(df, postos, simulado, extras)
+    if acao == "auditoria":
+        return _auditoria(df, postos, simulado, extras, posto)
     if alertas is None:
-        alertas = al.gerar(df, tanques, postos)
+        alertas = al.gerar(df, tanques, postos, auditoria=extras.get("auditoria"))
     if acao == "alertas":
         return _alertas(df, tanques, postos, alertas, simulado, posto)
     if posto is None:

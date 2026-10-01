@@ -279,12 +279,39 @@ def regra_destaques(df, per: an.Periodo, postos: list[str]) -> list[Alerta]:
 
 
 # -------------------------------------------------------------- execução ---
-def gerar(df: pd.DataFrame, tanques: pd.DataFrame, postos: list[str]) -> list[Alerta]:
+def regra_auditoria(aud: pd.DataFrame | None, postos: list[str]) -> list[Alerta]:
+    """UM alerta por posto com dado alterado depois de recebido — o resto dos
+    sinais de fraude fica na tela 🛡️ Auditoria, para não poluir a Central."""
+    from src import auditoria
+    saida = []
+    if aud is None or aud.empty:
+        return saida
+    sus = auditoria.suspeitas(aud, dias=14)
+    for posto in postos:
+        g = sus[sus["posto"] == posto]
+        if g.empty:
+            continue
+        dias = sorted({pd.Timestamp(d).strftime("%d/%m") for d in g["data"]})
+        quem = ", ".join(sorted({u for u in g["usuario"] if u})) or "não identificado"
+        quando = g["registrado_em"].max()
+        detalhes = [auditoria.descrever(m) for _, m in g.head(3).iterrows()]
+        detalhes.append(f"Alterado por {quem} em {quando:%d/%m às %H:%M}. Veja 🛡️ Auditoria.")
+        saida.append(Alerta(
+            nivel="critico" if (g["gravidade"] == "critico").any() else "atencao", tipo="auditoria",
+            posto=posto, titulo="DADOS ALTERADOS DEPOIS DE RECEBIDOS",
+            resumo=f"{len(dias)} dia(s) já enviado(s) foram alterados ({', '.join(dias[:4])})",
+            detalhes=detalhes, aba="Auditoria", data_ref=quando.date()))
+    return saida
+
+
+def gerar(df: pd.DataFrame, tanques: pd.DataFrame, postos: list[str],
+          auditoria: pd.DataFrame | None = None) -> list[Alerta]:
     """Todos os alertas, cada posto medido na SUA última data com dado."""
     data_ref = df["data"].max().date()
     per = an.periodo(df, data_ref.year, data_ref.month)
     alertas: list[Alerta] = []
-    for regra in (lambda: regra_estoque(df, tanques),
+    for regra in (lambda: regra_auditoria(auditoria, postos),
+                  lambda: regra_estoque(df, tanques),
                   lambda: regra_perda(df, per, postos),
                   lambda: regra_margem_produto(df, postos),
                   lambda: regra_margem_historico(df, per, postos),

@@ -14,6 +14,7 @@ de cada posto entraram e tudo o que não bateu, com o nome do arquivo.
 """
 from __future__ import annotations
 
+import os
 import sys
 from collections import defaultdict
 
@@ -26,8 +27,9 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     print("Lendo as planilhas dos postos...")
     res = base.construir()
+    origem = "GitHub (planilha enviada)" if os.environ.get("GITHUB_ACTIONS") else "Atualizar Dados"
     try:
-        base.gravar(res)
+        info = base.gravar(res, origem=origem)
     except ValueError as erro:
         print(erro)
         for e in res.erros:
@@ -54,6 +56,8 @@ def main() -> int:
         print(f"\n  {len(res.avisos)} aviso(s):")
         for a in res.avisos:
             print("   !", a)
+    if info.get("alteracoes"):
+        print(f"\n  🛡️ {info['alteracoes']} alteração(ões) em dados já recebidos — registradas na auditoria.")
     print(f"\nBase gravada em {base.PASTA_BASE}")
     return 0
 

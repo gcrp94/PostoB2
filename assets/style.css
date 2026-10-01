@@ -269,6 +269,20 @@ table.matriz td.cel.atencao { background: var(--atencao-soft); color: var(--aten
 table.matriz td.cel.critico { background: var(--critico); color: #ffffff; }
 table.matriz td.cel small { display: block; font-size: .68rem; font-weight: 600; opacity: .85; }
 
+/* Placar da reunião de gerentes (posto × indicador) */
+table.matriz.placar { table-layout: auto; min-width: 880px; }
+table.matriz.placar th:first-child, table.matriz.placar td:first-child { width: auto; }
+table.matriz.placar th small, table.matriz.placar td.unidade small {
+  display: block; font-size: .62rem; font-weight: 600; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
+table.matriz.placar td.unidade { white-space: nowrap; font-weight: 700; }
+table.matriz.placar td.cel { font-size: .86rem; padding: .5rem .35rem; white-space: nowrap; }
+table.matriz.placar td.cel.ok, table.matriz.placar td.cel.neutro { background: #f6f8fb; color: var(--text-primary); font-weight: 700; }
+table.matriz.placar tr.rede td { font-weight: 700; color: var(--navy-ui); text-align: center; border-top: 2px solid var(--border); }
+table.matriz.placar tr.rede td.unidade { text-align: left; }
+ul.pauta { margin: .3rem 0 .2rem; padding-left: 0; list-style: none; }
+ul.pauta li { padding: .45rem 0; border-bottom: 1px solid var(--grid); font-size: .93rem; line-height: 1.45; }
+ul.pauta li:last-child { border-bottom: 0; }
+
 /* ------------------------------------------------------ login ----------- */
 .login-card { max-width: 440px; margin: 3.5rem auto 1rem; text-align: center; }
 .login-card img { width: 108px; border-radius: 22px; box-shadow: 0 10px 30px rgba(4,18,67,.25); }

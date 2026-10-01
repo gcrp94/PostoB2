@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 import pandas as pd
 
-from src import etl
+from src import auditoria, etl
 from src import planilhas as P
 from src.formatting import format_brl, format_int, format_litros, nome_mes
 
@@ -33,6 +33,7 @@ class Relatorio:
     comparacao: dict = field(default_factory=dict)
     nome_padrao: str = ""
     duplicado: bool = False
+    alteracoes: list = field(default_factory=list)
 
     @property
     def erros(self) -> list[str]:
@@ -219,6 +220,16 @@ def validar(conteudo: bytes, nome_arquivo: str, posto: str, postos: list[str], t
                 "faturamento": fat - float(antigo["faturamento"].sum()),
                 "margem": margem - float(antigo["margem"].sum()),
             }
+            # Dias JÁ recebidos que esta planilha muda — é o que a auditoria vai
+            # registrar. Quem envia vê antes de confirmar.
+            ultima = movimento_base[movimento_base["posto"] == posto].groupby("posto")["data"].max()
+            mud = auditoria.comparar(antigo, df.assign(posto=posto), ultima=ultima)
+            mud = mud[mud["gravidade"] != "normal"]
+            if len(mud):
+                dias_alt = sorted({pd.Timestamp(d).strftime("%d/%m") for d in mud["data"]})
+                rel.alteracoes = [auditoria.descrever(m) for _, m in mud.head(6).iterrows()]
+                rel.aviso(f"Esta planilha ALTERA {len(dias_alt)} dia(s) já recebido(s) "
+                          f"({', '.join(dias_alt[:6])}). A alteração fica registrada na auditoria.")
     return rel
 
 

@@ -124,12 +124,12 @@ def _salvar_local(pasta: str, nome: str, conteudo: bytes) -> Path | None:
     return backup
 
 
-def remontar_base() -> tuple[bool, str]:
+def remontar_base(usuario: str = "", origem: str = "Envio pelo painel") -> tuple[bool, str]:
     res = base.construir()
     if res.erros:
         return False, "; ".join(res.erros)
     try:
-        base.gravar(res)
+        base.gravar(res, origem=origem, usuario=usuario)
     except ValueError as erro:
         return False, str(erro)
     return True, ""
@@ -180,14 +180,14 @@ def salvar_planilha(usuario: str, posto: str, pasta: str, nome: str, conteudo: b
                 "mensagem": "Planilha recebida. O painel publicado se atualiza em 2 a 3 minutos."}
 
     backup = _salvar_local(pasta, nome, conteudo)
-    ok, erro = remontar_base()
+    ok, erro = remontar_base(usuario)
     if not ok:
         destino = PASTA_DADOS / pasta / nome
         if backup:
             shutil.copy2(backup, destino)
         else:
             destino.unlink(missing_ok=True)
-        remontar_base()
+        remontar_base(origem=None)
         return {"ok": False, "modo": "local",
                 "mensagem": f"A base não remontou ({erro}). A planilha anterior foi restaurada."}
     registrar_envio(posto, pasta, usuario, periodo, nome, "Processado", detalhe)

@@ -1,7 +1,0 @@
-enviado_em;chave;nivel;posto;titulo;resumo;canal;retorno
-2026-09-30 11:05;perda|B2 Primavera|Gasolina Comum|2026-09-27;critico;B2 Primavera;PERDA ACIMA DA TOLERÂNCIA;Gasolina Comum com perda de 1,05% do vendido no mês;console;mostrado no terminal
-2026-09-30 11:05;estoque|B2 Candói|Diesel S10|2026-09-27;critico;B2 Candói;ESTOQUE CRÍTICO;Diesel S10 com 0,9 dia de autonomia;console;mostrado no terminal
-2026-09-30 11:05;margem_produto|B2 Bonsucesso|Diesel S10|2026-09-27;atencao;B2 Bonsucesso;MARGEM EM QUEDA;margem do Diesel S10 caiu 33,5%;console;mostrado no terminal
-2026-09-30 11:05;margem_historico|B2 Primavera|-|2026-09-27;atencao;B2 Primavera;MARGEM ABAIXO DO HISTÓRICO;margem bruta de 8,7% no mês, contra 10,5% na média de 12 meses;console;mostrado no terminal
-2026-09-30 11:05;desatualizado|B2 Primavera|-|2026-09-27;atencao;B2 Primavera;DADOS DESATUALIZADOS;há 3 dias sem enviar a planilha;console;mostrado no terminal
-2026-09-30 11:05;volume|B2 Índio|-|2026-09-27;atencao;B2 Índio;VENDA FORA DO PADRÃO;vendas 17,7% abaixo da média;console;mostrado no terminal

@@ -30,6 +30,17 @@ TIMEOUT_ESPERA = 25          # segundos que o Telegram segura o getUpdates
 MAX_TEXTO = 4_000            # limite do Telegram é 4.096
 PADRAO_TOKEN = re.compile(r"^\d{5,15}:[A-Za-z0-9_-]{30,60}$")
 
+# O menu que aparece ao digitar "/" (vale para conversa e grupo).
+COMANDOS = [
+    {"command": "resumo", "description": "Resumo da rede ou de um posto (ex.: /resumo centro)"},
+    {"command": "estoque", "description": "Estoque e dias de autonomia (ex.: /estoque candoi)"},
+    {"command": "alertas", "description": "O que exige ação agora"},
+    {"command": "reuniao", "description": "Placar das gerências"},
+    {"command": "auditoria", "description": "Sinais de fraude para conferir"},
+    {"command": "pendencias", "description": "Postos que não mandaram a planilha"},
+    {"command": "ajuda", "description": "Tudo o que dá para perguntar"},
+]
+
 # Teclado fixo embaixo da conversa: a demonstração inteira em toques.
 TECLADO = [
     ["🏪 Resumo da rede", "🚨 Alertas"],
@@ -113,16 +124,19 @@ class ServicoTelegram:
     """Um robô por processo: escuta, responde e guarda quem conversou."""
 
     def __init__(self, token: str, responder: Callable[[str], object],
-                 chats: list[int] | None = None, ao_registrar: Callable[[int, str], None] | None = None):
+                 chats: list[int] | None = None, ao_registrar: Callable[[int, str], None] | None = None,
+                 ao_remover: Callable[[int], None] | None = None, nomes: dict | None = None):
         token = token.strip()
         if not token_valido(token):
             raise ValueError("Isso não parece um token do @BotFather (formato 123456789:ABC…).")
         self._token = token
         self._responder = responder
         self._ao_registrar = ao_registrar
+        self._ao_remover = ao_remover
         self._lock = threading.RLock()
         self._sessao: _Sessao | None = None
-        self._chats: dict[int, str] = {int(c): "" for c in (chats or [])}
+        nomes = {int(k): v for k, v in (nomes or {}).items()}
+        self._chats: dict[int, str] = {int(c): nomes.get(int(c), "") for c in (chats or [])}
         self._estado = dict(ativo=False, conectado=False, erro="", bot_usuario="", bot_nome="",
                             ultimo_comando="", ultima_resposta="", respostas=0)
 
@@ -153,6 +167,20 @@ class ServicoTelegram:
         with self._lock:
             return list(self._chats)
 
+    def conversas(self) -> list[tuple[int, str, str]]:
+        """(id, nome, 'grupo' | 'pessoa') — no Telegram, grupo tem id negativo."""
+        with self._lock:
+            return [(c, n or str(c), "grupo" if c < 0 else "pessoa") for c, n in self._chats.items()]
+
+    def remover(self, chat_id: int) -> None:
+        with self._lock:
+            self._chats.pop(int(chat_id), None)
+        if self._ao_remover:
+            try:
+                self._ao_remover(int(chat_id))
+            except Exception:
+                pass
+
     def _atualizar(self, sessao: _Sessao, **valores) -> None:
         with self._lock:
             if self._sessao is sessao and not sessao.parada.is_set():
@@ -182,8 +210,31 @@ class ServicoTelegram:
         return novo
 
     # ------------------------------------------------------------ recepção
+    def _membro(self, evento: dict) -> None:
+        """O robô entrou ou saiu de um grupo: registra (e se apresenta) ou esquece."""
+        chat = evento.get("chat") or {}
+        chat_id, situacao = chat.get("id"), (evento.get("new_chat_member") or {}).get("status")
+        if not isinstance(chat_id, int):
+            return
+        if situacao in ("member", "administrator"):
+            self._registrar(chat_id, chat.get("title") or chat.get("first_name") or "")
+            boas_vindas = _Simples(
+                "🤖 B2 Gestão chegou ao grupo",
+                "Vou mandar aqui os disparos programados da rede (resumo da manhã, alertas quando os "
+                "dados chegam, cobrança de planilhas).\n\nPara perguntar, use comandos:\n"
+                "/resumo centro · /estoque candoi · /alertas · /reuniao · /auditoria")
+            try:
+                enviar_mensagem(self._token, chat_id, boas_vindas)
+            except (ErroTelegram, TimeoutError):
+                pass
+        elif situacao in ("left", "kicked"):
+            self.remover(chat_id)
+
     def _tratar(self, atualizacao: dict, sessao: _Sessao) -> None:
         if sessao.parada.is_set() or not isinstance(atualizacao, dict):
+            return
+        if isinstance(atualizacao.get("my_chat_member"), dict):
+            self._membro(atualizacao["my_chat_member"])
             return
         clique = atualizacao.get("callback_query")
         if isinstance(clique, dict):
@@ -200,10 +251,14 @@ class ServicoTelegram:
             chat = (mensagem.get("chat") or {}).get("id")
             texto = mensagem.get("text") or ""
             nome = (mensagem.get("from") or {}).get("first_name", "")
+        dados_chat = mensagem.get("chat") or {}
+        if dados_chat.get("title"):
+            nome = dados_chat["title"]               # em grupo, guarda o nome do grupo
         if not isinstance(chat, int) or not isinstance(texto, str) or not texto.strip():
             return
         texto = texto.strip()[:300]
         novo = self._registrar(chat, nome)
+        em_grupo = chat < 0
         inicio = texto.lower().startswith(("/start", "/menu", "/ajuda"))
         comando = "ajuda" if inicio else texto
         self._atualizar(sessao, ultimo_comando=texto)
@@ -218,9 +273,11 @@ class ServicoTelegram:
         except Exception:
             resposta = _Simples("🤖 B2 Gestão", "Não consegui consultar os dados agora. Tente de novo.")
         try:
-            # Na primeira conversa (ou no /start) vai o teclado fixo com os botões.
-            enviar_mensagem(self._token, chat, resposta, teclado_fixo=inicio or novo)
-            if inicio or novo:
+            # Na primeira conversa (ou no /start) vai o teclado fixo com os botões
+            # — só em conversa particular: num grupo ele atrapalharia todo mundo.
+            fixo = (inicio or novo) and not em_grupo
+            enviar_mensagem(self._token, chat, resposta, teclado_fixo=fixo)
+            if fixo:
                 inline = botoes(resposta)
                 if inline:
                     _chamar(self._token, "sendMessage", {"chat_id": chat, "text": "Mais opções 👇",
@@ -238,6 +295,11 @@ class ServicoTelegram:
                 if not self._estado["bot_usuario"]:
                     eu = _chamar(self._token, "getMe")
                     self._atualizar(sessao, bot_usuario=eu.get("username", ""), bot_nome=eu.get("first_name", ""))
+                    # O menu "/" do Telegram (também nos grupos).
+                    try:
+                        _chamar(self._token, "setMyCommands", {"commands": COMANDOS})
+                    except (ErroTelegram, TimeoutError):
+                        pass
                 if sessao.offset is None:
                     # Ignora o que ficou parado na fila antes de ligar: responder
                     # pergunta de ontem na frente do comprador seria estranho.
@@ -246,7 +308,7 @@ class ServicoTelegram:
                 self._atualizar(sessao, conectado=True, erro="")
                 novas = _chamar(self._token, "getUpdates",
                                 {"offset": sessao.offset, "timeout": TIMEOUT_ESPERA,
-                                 "allowed_updates": ["message", "callback_query"]},
+                                 "allowed_updates": ["message", "callback_query", "my_chat_member"]},
                                 timeout=TIMEOUT_ESPERA + 10)
                 for atualizacao in novas or []:
                     sessao.offset = max(sessao.offset, int(atualizacao.get("update_id", 0)) + 1)

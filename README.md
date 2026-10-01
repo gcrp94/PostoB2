@@ -39,11 +39,13 @@ PROPRIETÁRIO / ADMINISTRAÇÃO                 GERENTE (só o próprio posto)
 ├─ 🎯 Central do Proprietário                ├─ ⛽ Meu Posto
 ├─ 💬 B2 Assistente (demonstração)
 ├─ 🏠 Visão da Rede                          ├─ 📤 Enviar Planilha
-├─ ⛽ B2 Centro … B2 Candói                   └─ 📑 Meus Envios
+├─ 📋 Reunião de Gerentes                    └─ 📑 Meus Envios
+├─ ⛽ B2 Centro … B2 Candói
 │    Resumo | Vendas | Margens | Estoque |
 │    Compras e Custos | Alertas
 ├─ 📤 Alimentar dados
 ├─ 🔔 Alertas
+├─ 🛡️ Auditoria
 ├─ 📑 Atualizações
 └─ ⚙️ Administração
 ```
@@ -59,6 +61,10 @@ PROPRIETÁRIO / ADMINISTRAÇÃO                 GERENTE (só o próprio posto)
 * **Cada posto** — o mesmo padrão nas cinco unidades, com os quatro produtos
   sempre com a mesma cor e ícone: ⛽ Gasolina Comum (laranja), ⛽ Gasolina
   Aditivada (azul), 🌱 Etanol (verde), 🚛 Diesel S10 (violeta).
+* **🛡️ Auditoria** — o controle de fraudes (ver abaixo). A Central recebe só
+  UM alerta por posto com dado alterado; o resto dos sinais fica aqui.
+* **📋 Reunião de Gerentes** — o placar do mês, posto × indicador, com a
+  pauta sugerida de cada gerente e a ficha para imprimir.
 
 **Margem bruta, não "lucro".** A margem bruta (faturamento − custo do
 combustível) é o número principal de todas as telas: é o que a planilha
@@ -107,11 +113,52 @@ autonomia e os alertas.
 > ⚠️ **O painel lê a base Parquet (`data/base/`), não os Excel.** Planilha
 > colocada à mão na pasta só aparece depois do `Atualizar Dados.bat`.
 
-Para testar o envio na apresentação há duas planilhas em
+Para testar o envio na apresentação há três planilhas em
 `exemplos_para_envio/`: a da **Primavera completa até 27/09** (entre como
-*Gerente · B2 Primavera* e envie — o alerta "dados desatualizados" some) e
-uma do **Candói com erros de propósito** (é recusada, com a lista dos
-problemas). Depois, *Administração → Restaurar os dados da demonstração*.
+*Gerente · B2 Primavera* e envie — o alerta "dados desatualizados" some), a
+**ALTERADA da Primavera** (a mesma, com a venda de 08/09 e 09/09 baixada: a
+conferência avisa e a auditoria registra na hora) e uma do **Candói com erros
+de propósito** (é recusada, com a lista dos problemas). Depois,
+*Administração → Restaurar os dados da demonstração*.
+
+---
+
+## 🛡️ Controle de fraudes
+
+Nenhum sinal é acusação: é **"confira isto"**. Tudo sai do que o posto já
+manda.
+
+**1. Trilha de auditoria (dado alterado depois de recebido).** Toda base nova
+é comparada com a anterior, posto × dia × combustível. Dia novo é rotina; dia
+que já tinha chegado e mudou vai para `data/auditoria.csv` com quem enviou,
+quando, por onde, valor antes e depois e o impacto em reais.
+
+| Gravidade | Quando | O que acontece |
+|---|---|---|
+| normal | mexeu no dia de ontem | só fica na trilha |
+| atenção | dia com 2+ dias | tela 🛡️ Auditoria |
+| **crítico** | dia com 7+ dias, ou **mês já fechado** | alerta na Central e no celular |
+
+O gerente é avisado **no envio** de que a planilha altera dias já recebidos e
+que isso fica registrado — só esse aviso já desencoraja o "ajuste". Baixar a
+venda sem mexer na régua aparece também como **perda no LMC**: os dois sinais
+se confirmam.
+
+**2. Cruzamentos.** Perda/sobra no LMC acima da tolerância · combustível que
+entrou no tanque **sem nota** · nota **sem entrada** no tanque · **nota
+repetida** · valor da nota ≠ litros × custo · **custo médio** informado fora
+do que as notas dão · venda **abaixo do custo** · vendas "redondas" demais
+(digitadas de cabeça, não lidas do encerrante).
+
+## 📋 Reunião de gerentes
+
+Placar do mês com o que o gerente controla: volume (vs mesmos dias),
+margem/L (vs média da rede), **aditivada na gasolina** (meta 20%), perda no
+LMC (meta 0,30%), despesa e resultado por litro, **planilha até as 10h**
+(meta 90%), dias com estoque crítico e dias alterados depois de enviados. Só
+as exceções ficam coloridas. Cada gerente tem a **pauta sugerida** (do mais
+grave ao elogio) e a **ficha da reunião** para imprimir, com espaço para os
+combinados. Metas em `src/reuniao.py`.
 
 ---
 
@@ -144,6 +191,29 @@ Não é IA e não tem custo de API: é consulta direta. Entende sem acento, sem
 | `margem bonsucesso` | margem bruta em R$, %, por litro e por combustível, contra a média de 12 meses |
 | `resumo rede` · `estoque rede` · `vendas rede` · `margem rede` | a rede inteira, com o ranking dos postos |
 | `alertas` | o que exige ação 🔴, o que merece atenção 🟡 e os destaques 🟢 |
+| `reunião` | o placar das gerências |
+| `auditoria` (ou `auditoria primavera`) | os sinais de fraude para conferir |
+| `pendências` | quais postos ainda não mandaram a planilha |
+
+### Disparos automáticos (sem ninguém perguntar)
+
+Em **💬 B2 Assistente → 3 · Disparos automáticos** você escolhe **o que**
+mandar e **quando**:
+
+* **Todo dia, no horário** — ex.: 🏪 resumo da rede às 07:30; 📋 placar das
+  gerências às 08:00 de segunda;
+* **Assim que os dados chegarem** — a planilha entrou, a base foi montada, os
+  🚨 alertas saem na hora;
+* **Cobrar se não chegar até o horário** — às 10:00, se algum posto não mandou
+  a planilha, avisa quem está pendente (se todos mandaram, fica quieto).
+
+Vai para **todas as conversas do robô — pessoas e grupos**: adicione o robô
+ao grupo da diretoria e ele se registra sozinho. Ninguém precisa abrir o
+Telegram. O assistente fica no ar enquanto o painel roda (notebook com o
+`Abrir App.bat`, ou a nuvem, que o despertador mantém acordada); na nuvem, os
+dados novos também disparam pelo GitHub Actions (`motor_alertas.py --chegada`,
+segredos `B2_TELEGRAM_TOKEN` e `B2_TELEGRAM_CHATS`). A agenda fica em
+`data/assistente_agenda.json`.
 
 ### Telegram — o recomendado (1 minuto para montar)
 
@@ -182,15 +252,20 @@ respostas são as mesmas, só troca o "transporte". Para demonstrar, Telegram.
 
 1. Antes: **Gerar Dados Simulados.bat** (cenário limpo) → **Abrir App.bat** →
    confira no painel que o robô está 🟢 no ar.
-2. **Central do Proprietário** no telão: "hoje sua rede pede ação em 2 pontos".
+2. **Central do Proprietário** no telão: "hoje sua rede pede ação em 3 pontos".
 3. Pegue o celular e toque **🚨 Alertas** → a mesma lista chega na conversa.
 4. Toque **⛽ Candói** → **📦 Estoque**: o diesel acaba em menos de 1 dia.
 5. Digite **"margem bonsucesso"**: a margem do diesel caiu 33% — o custo subiu
    e o preço não acompanhou.
-6. No painel, **📣 Disparar os alertas críticos**: o celular vibra.
-7. Feche com **Visão da Rede** e com a tela de **Enviar Planilha** (o gerente
+6. **🛡️ Auditoria**: em 22/09 o envio da Primavera baixou a venda de 03 e
+   04/09 em 1.200 L (R$ 7,4 mil) — e a perda do LMC denuncia o mesmo. Envie a
+   planilha **ALTERADA** como gerente da Primavera: a conferência avisa e o
+   alerta aparece na hora.
+7. **📋 Reunião de Gerentes**: o placar e a ficha do gerente para imprimir.
+8. No painel, **📣 Disparar os alertas críticos**: o celular vibra.
+9. Feche com **Visão da Rede** e com a tela de **Enviar Planilha** (o gerente
    alimenta pelo celular, o sistema confere e recusa planilha errada).
-8. Deixe o comprador perguntar pelo celular dele: o robô responde qualquer um
+10. Deixe o comprador perguntar pelo celular dele: o robô responde qualquer um
    que abrir o link — e só com os dados simulados.
 ## 🔔 Alertas automáticos
 
@@ -216,6 +291,7 @@ Teste com `python motor_alertas.py --teste`.
 | 🟡 Margem abaixo do histórico | margem % do mês 1,2 p.p. abaixo da média de 12 meses |
 | 🟡 Venda fora do padrão | últimos 7 dias 10% abaixo da média das 8 semanas anteriores |
 | 🟡 Dados desatualizados | posto 2 dias ou mais atrás dos outros no envio |
+| 🔴 Dados alterados depois de recebidos | dia já recebido mudou 7+ dias depois, ou mês já fechado (trilha de auditoria) |
 
 ---
 
