@@ -4,7 +4,7 @@
 # dado novo em 2 a 3 minutos. Para quem envia a planilha, o GitHub nem existe.
 #
 # Segredos (Settings -> Secrets and variables -> Actions):
-#   B2_CANAL            ntfy | pushover   (sem ele, os alertas só vão para o log)
+#   B2_CANAL            telegram | ntfy | pushover   (sem ele, os alertas só vão para o log)
 #   B2_NTFY_TOPICO      tópico do ntfy
 #   B2_PUSHOVER_TOKEN   token do aplicativo no Pushover
 #   B2_PUSHOVER_USUARIO chave do usuário no Pushover
@@ -54,6 +54,8 @@ jobs:
           B2_NTFY_TOPICO: ${{ secrets.B2_NTFY_TOPICO }}
           B2_PUSHOVER_TOKEN: ${{ secrets.B2_PUSHOVER_TOKEN }}
           B2_PUSHOVER_USUARIO: ${{ secrets.B2_PUSHOVER_USUARIO }}
+          B2_TELEGRAM_TOKEN: ${{ secrets.B2_TELEGRAM_TOKEN }}
+          B2_TELEGRAM_CHATS: ${{ secrets.B2_TELEGRAM_CHATS }}
           B2_URL_PAINEL: ${{ vars.B2_URL_PAINEL }}
         run: python motor_alertas.py
 
