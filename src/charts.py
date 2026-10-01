@@ -25,6 +25,7 @@ from src.formatting import (
 C = theme.COLORS
 CFG = {"displayModeBar": False, "responsive": True, "locale": "pt-BR"}
 DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+NOVO = False        # o app.py liga no "Painel novo": grade pontilhada, dica escura, barras arredondadas
 
 
 def _base(fig: go.Figure, altura: int = 300, legenda: bool = False) -> go.Figure:
@@ -44,6 +45,13 @@ def _base(fig: go.Figure, altura: int = 300, legenda: bool = False) -> go.Figure
                      tickfont=dict(size=11.5, color=C["text_secondary"]), fixedrange=True, tickangle=0)
     fig.update_yaxes(showgrid=True, gridcolor=C["grid"], gridwidth=1, zeroline=False, ticks="",
                      tickfont=dict(size=11, color=C["text_muted"]), fixedrange=True)
+    if NOVO:
+        fig.update_layout(
+            barcornerradius=6,
+            hoverlabel=dict(bgcolor="#0b1646", bordercolor="#0b1646",
+                            font=dict(family=theme.FONTE_FAMILIA, size=12, color="#ffffff")))
+        fig.update_yaxes(gridcolor="#e9edf5", griddash="dot")
+        fig.update_xaxes(linecolor="rgba(0,0,0,0)")
     return fig
 
 

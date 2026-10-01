@@ -200,6 +200,31 @@ para reunião com gerentes — **sem poluir o BI**.
 
 ---
 
+## Painel novo × Painel antigo (01/10/2026)
+
+Pedido do usuário: testar uma repaginação visual e poder alternar entre o
+visual antigo e o novo para aprovar.
+
+* **Botão "Painel antigo | Painel novo"** no topo do menu lateral; também
+  `?visual=antigo` na URL. Padrão: novo. A escolha mora em
+  `st.session_state["visual"]` e `ui.novo()` responde.
+* **Só aparência.** O antigo é o `assets/style.css` intacto; o novo é o
+  `assets/style_novo.css` por CIMA dele (mesmas cores da marca e dos
+  combustíveis). Não há regra de negócio no visual.
+* O que o novo muda: ícones de traço único (Material) no lugar dos emojis do
+  menu e dos títulos; miniatura de tendência (30 dias) nos cartões
+  principais; Visão da Rede com 4 cartões grandes + 4 leves; hero da Central
+  em cartão claro; alertas em linhas que abrem (`<details>`) com o botão ao
+  lado; etiquetas nos alertas do posto; tabelas e gráficos mais leves
+  (dica escura, grade pontilhada, barras arredondadas).
+* **Armadilhas:** `charts.NOVO` é um módulo global ligado a cada rerun pelo
+  `app.py` — serve para a demonstração; se virar produto multiusuário, passe
+  o visual por parâmetro. O ícone do menu entra por `format_func` do
+  `st.radio` (`:material/nome:`); o VALOR do menu continua com o emoji, é ele
+  que o roteamento usa (`pagina.startswith("🎯")`).
+
+---
+
 ## Publicação (desenhada, não feita)
 
 Streamlit Community Cloud + repositório privado. Com `[github]` no secrets,

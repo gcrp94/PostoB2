@@ -80,6 +80,14 @@ h1, h2, h3, h4 { color: var(--text-primary); letter-spacing: -.01em; }
     color: #dfe6f5 !important; border-radius: 10px !important;
 }
 [data-testid="stSidebar"] .stButton button:hover { background: rgba(255,255,255,.12) !important; }
+/* O botão "Painel antigo | Painel novo" no topo do menu */
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button {
+    background: rgba(255,255,255,.06) !important; border-color: rgba(255,255,255,.14) !important; color: #c3cfe8 !important;
+}
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button p { color: inherit !important; }
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-checked="true"] {
+    background: var(--orange) !important; border-color: var(--orange) !important; color: #ffffff !important;
+}
 [data-testid="stSidebar"] [data-baseweb="select"] > div {
     background: rgba(255,255,255,.07) !important; border-color: rgba(255,255,255,.16) !important;
 }

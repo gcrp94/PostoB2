@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +34,11 @@ from src.formatting import (  # noqa: E402
     format_pct_simples, format_rs_litro, nome_mes,
 )
 
+# Visual: "novo" por padrão; o botão do menu lateral (ou ?visual=antigo) volta ao clássico.
+if "visual" not in st.session_state:
+    st.session_state["visual"] = ("classico" if st.query_params.get("visual", "") in ("antigo", "classico")
+                                  else "novo")
+charts.NOVO = ui.novo()
 ui.injetar_css()
 
 # O robô do celular (Telegram/ntfy) liga ANTES do login: basta o Abrir App.bat
@@ -79,6 +84,57 @@ DIAS_SEMANA = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "dom
 
 def grafico(fig):
     st.plotly_chart(fig, width="stretch", config=charts.CFG)
+
+
+def tendencia(coluna: str, posto: str | None = None, dias: int = 30):
+    """Série diária dos últimos `dias` — a miniatura dos cartões do visual novo."""
+    if not ui.novo():
+        return None
+    fim = an.ultima_data(DF, posto) if posto else ULTIMA
+    inicio = fim - timedelta(days=dias - 1)
+    if coluna == "estoque":
+        g = an.recorte(DF, inicio, fim, posto)
+        return g.groupby("data")["estoque_final"].sum().tolist()
+    s = an.serie_diaria(DF, inicio, fim, posto, por_produto=False)
+    return s[coluna].tolist()
+
+
+ICONES_MENU = {"🎯": "dashboard", "🏠": "monitoring", "📋": "groups", "⛽": "local_gas_station",
+               "📤": "upload_file", "🔔": "notifications", "🛡": "shield", "📑": "history",
+               "💬": "smart_toy", "⚙": "settings"}
+
+
+def rotulo_menu(item: str) -> str:
+    """No visual novo, o emoji do menu vira ícone de traço único."""
+    if not ui.novo():
+        return item
+    icone = ICONES_MENU.get(item.split(" ", 1)[0].replace("️", ""))
+    return f":material/{icone}: {ui.sem_emoji(item)}" if icone else item
+
+
+def grade_alertas(lista, prefixo: str, acao, mostrar_posto: bool = True):
+    """Os cartões de alerta com o botão de ação. `acao(a)` devolve
+    (rótulo, função, argumentos) — rótulo None = sem botão. Visual antigo:
+    cartões em 2 colunas; novo: linhas que abrem, com o botão ao lado."""
+    cols = None if ui.novo() else st.columns(2)
+    for i, a in enumerate(lista):
+        rotulo, funcao, args = acao(a)
+        chave = f"{prefixo}_{i}_{a.chave}"
+        with (st.container() if cols is None else cols[i % 2]):
+            if ui.novo() and rotulo:
+                c1, c2 = st.columns([5, 1.5], vertical_alignment="center")
+                with c1:
+                    ui.md(ui.alerta_html(a, mostrar_posto))
+                with c2:
+                    st.button(rotulo, key=chave, type="tertiary", on_click=funcao, args=args)
+            else:
+                ui.md(ui.alerta_html(a, mostrar_posto))
+                if rotulo:
+                    st.button(rotulo, key=chave, type="tertiary", on_click=funcao, args=args)
+
+
+def acao_abrir_posto(a):
+    return rotulo_abrir(a), ir_para, (f"⛽ {a.posto}", a.aba, a.posto)
 
 
 PAGINA_AUDITORIA = "🛡️ Auditoria"
@@ -168,6 +224,16 @@ def lateral():
         ui.md(f'<div class="lateral-usuario"><div class="ola">Olá, {ui.esc(usuario.nome)}</div>'
               f'<div class="perfil">{usuario.perfil_nome} · <b>{ui.esc(onde)}</b></div></div>')
 
+        def _mudou_visual():
+            escolha = st.session_state.get("_seg_visual")
+            if escolha:
+                st.session_state["visual"] = "classico" if escolha == "Painel antigo" else "novo"
+                st.query_params["visual"] = "antigo" if escolha == "Painel antigo" else "novo"
+
+        st.session_state["_seg_visual"] = "Painel novo" if ui.novo() else "Painel antigo"
+        st.segmented_control("Visual", ["Painel antigo", "Painel novo"], key="_seg_visual",
+                             on_change=_mudou_visual, label_visibility="collapsed")
+
         if usuario.ve_rede:
             paineis = ["🎯 Central do Proprietário", "🏠 Visão da Rede", PAGINA_REUNIAO] + \
                       [f"⛽ {p}" for p in POSTOS]
@@ -193,16 +259,16 @@ def lateral():
                     st.session_state["menu_paineis"] = paineis[0]
             ui.md('<div class="lateral-rotulo">Painéis</div>')
             st.radio("Painéis", paineis, key="menu_paineis", label_visibility="collapsed",
-                     on_change=lambda: st.session_state.update(menu_gestao=None))
+                     format_func=rotulo_menu, on_change=lambda: st.session_state.update(menu_gestao=None))
             ui.md('<div class="lateral-rotulo">Gestão</div>')
             st.radio("Gestão", gestao, key="menu_gestao", label_visibility="collapsed",
-                     on_change=lambda: st.session_state.update(menu_paineis=None))
+                     format_func=rotulo_menu, on_change=lambda: st.session_state.update(menu_paineis=None))
             pagina = st.session_state["menu_paineis"] or st.session_state["menu_gestao"] or paineis[0]
         else:
             opcoes = ["⛽ Meu Posto", "📤 Enviar Planilha", "📑 Meus Envios"]
             st.session_state.setdefault("menu_gerente", opcoes[0])
             ui.md('<div class="lateral-rotulo">Menu</div>')
-            st.radio("Menu", opcoes, key="menu_gerente", label_visibility="collapsed")
+            st.radio("Menu", opcoes, key="menu_gerente", label_visibility="collapsed", format_func=rotulo_menu)
             pagina = st.session_state["menu_gerente"]
 
         st.divider()
@@ -249,26 +315,22 @@ def pagina_central():
     ui.secao("O mês até agora", f"{texto_periodo(per)} · comparação com os mesmos dias do mês anterior")
     ui.grade_kpis([
         ui.kpi("Faturamento", format_brl_curto(ind["faturamento"]),
-               ui.delta_html(_var(ind["faturamento"], ant["faturamento"])) + comp, "💰"),
+               ui.delta_html(_var(ind["faturamento"], ant["faturamento"])) + comp, "💰",
+               spark=tendencia("faturamento")),
         ui.kpi("Litros vendidos", format_litros_curto(ind["litros"]),
-               ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽"),
+               ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽", spark=tendencia("litros")),
         ui.kpi("Margem bruta", format_brl_curto(ind["margem"]),
                f"{format_pct_simples(ind['margem_pct'], 1)} · {format_rs_litro(ind['margem_litro'])}", "📈",
-               "destaque"),
+               "destaque", spark=tendencia("margem")),
         ui.kpi("Estoque na rede", format_litros_curto(est["estoque"].sum()),
-               f"≈ {format_decimal(aut_rede, 1)} dias de venda", "🛢️"),
+               f"≈ {format_decimal(aut_rede, 1)} dias de venda", "🛢️", spark=tendencia("estoque")),
     ])
 
     def lista(alertas_n, titulo, sub):
         if not alertas_n:
             return
         ui.secao(titulo, sub)
-        cols = st.columns(2)
-        for i, a in enumerate(alertas_n):
-            with cols[i % 2]:
-                ui.md(ui.alerta_html(a))
-                st.button(rotulo_abrir(a), key=f"central_{i}_{a.chave}", type="tertiary",
-                          on_click=ir_para, args=(f"⛽ {a.posto}", a.aba, a.posto))
+        grade_alertas(alertas_n, f"central_{titulo[:3]}", acao_abrir_posto)
 
     lista(criticos, "🔴 Exige ação", "Resolver hoje.")
     lista(atencao, "🟡 Merece atenção", "Olhar nesta semana.")
@@ -321,26 +383,37 @@ def pagina_rede():
     tem_critico = any(a.nivel == "critico" for a in ALERTAS)
     ui.md(f'<div class="secao-sub">{texto_periodo(per)} · variações comparadas com os mesmos dias do mês '
           'anterior</div>')
-    ui.grade_kpis([
-        ui.kpi("Volume vendido no mês", format_litros(ind["litros"]),
-               ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽"),
-        ui.kpi("Faturamento", format_brl_curto(ind["faturamento"]),
-               ui.delta_html(_var(ind["faturamento"], ant["faturamento"])) + comp, "💰"),
-        ui.kpi("Margem bruta", format_brl_curto(ind["margem"]),
-               ui.delta_html(_var(ind["margem"], ant["margem"])) + comp, "📈", "destaque"),
-        ui.kpi("Margem bruta %", format_pct_simples(ind["margem_pct"], 2),
-               ui.delta_html(ind["margem_pct"] - ant["margem_pct"], tipo="pp") + comp, "％"),
-        ui.kpi("Margem média por litro", format_rs_litro(ind["margem_litro"]),
-               ui.delta_html(_var(ind["margem_litro"], ant["margem_litro"])) + comp, "🧮"),
-        ui.kpi("Estoque atual", format_litros(est["estoque"].sum()),
-               f"{len(est)} tanques · medição de {per.fim:%d/%m}", "🛢️"),
-        ui.kpi("Autonomia estimada", f"{format_decimal(aut, 1)} dias",
-               f"menor: {pior['posto'].replace('B2 ', '')} · {pior['produto']} "
-               f"({format_decimal(pior['autonomia'], 1)} dia{'s' if pior['autonomia'] >= 2 else ''})", "⏱️"),
-        ui.kpi("Postos em atenção", f"{len(postos_alerta)} de {len(POSTOS)}",
-               ", ".join(p.replace("B2 ", "") for p in postos_alerta) or "nenhum", "🚦",
-               "alerta-critico" if tem_critico else ("alerta-atencao" if postos_alerta else "")),
-    ])
+    cartoes = {
+        "volume": ui.kpi("Volume vendido no mês", format_litros(ind["litros"]),
+                         ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽",
+                         spark=tendencia("litros")),
+        "faturamento": ui.kpi("Faturamento", format_brl_curto(ind["faturamento"]),
+                              ui.delta_html(_var(ind["faturamento"], ant["faturamento"])) + comp, "💰",
+                              spark=tendencia("faturamento")),
+        "margem": ui.kpi("Margem bruta", format_brl_curto(ind["margem"]),
+                         ui.delta_html(_var(ind["margem"], ant["margem"])) + comp, "📈", "destaque",
+                         spark=tendencia("margem")),
+        "margem_pct": ui.kpi("Margem bruta %", format_pct_simples(ind["margem_pct"], 2),
+                             ui.delta_html(ind["margem_pct"] - ant["margem_pct"], tipo="pp") + comp, "％"),
+        "margem_litro": ui.kpi("Margem média por litro", format_rs_litro(ind["margem_litro"]),
+                               ui.delta_html(_var(ind["margem_litro"], ant["margem_litro"])) + comp, "🧮"),
+        "estoque": ui.kpi("Estoque atual", format_litros(est["estoque"].sum()),
+                          f"{len(est)} tanques · medição de {per.fim:%d/%m}", "🛢️", spark=tendencia("estoque")),
+        "autonomia": ui.kpi("Autonomia estimada", f"{format_decimal(aut, 1)} dias",
+                            f"menor: {pior['posto'].replace('B2 ', '')} · {pior['produto']} "
+                            f"({format_decimal(pior['autonomia'], 1)} dia{'s' if pior['autonomia'] >= 2 else ''})",
+                            "⏱️"),
+        "atencao": ui.kpi("Postos em atenção", f"{len(postos_alerta)} de {len(POSTOS)}",
+                          ", ".join(p.replace("B2 ", "") for p in postos_alerta) or "nenhum", "🚦",
+                          "alerta-critico" if tem_critico else ("alerta-atencao" if postos_alerta else "")),
+    }
+    if ui.novo():
+        # Os quatro que o dono olha primeiro, grandes; o resto, leve, embaixo.
+        ui.grade_kpis([cartoes[k] for k in ("faturamento", "volume", "margem", "atencao")])
+        ui.grade_kpis([cartoes[k] for k in ("margem_pct", "margem_litro", "estoque", "autonomia")], compacto=True)
+    else:
+        ui.grade_kpis([cartoes[k] for k in ("volume", "faturamento", "margem", "margem_pct", "margem_litro",
+                                            "estoque", "autonomia", "atencao")])
 
     # ---- quadro por unidade
     t = an.por_posto(DF, per, POSTOS)
@@ -355,7 +428,7 @@ def pagina_rede():
         info_p = D["postos"].loc[p]
         dias_txt = f"{format_decimal(e['estoque'] / e['media'], 1)} dias"
         linhas.append([
-            f'<span class="unidade">⛽ {p}</span><span class="mini">{ui.esc(info_p["bairro"])} · '
+            f'<span class="unidade">{"" if ui.novo() else "⛽ "}{p}</span><span class="mini">{ui.esc(info_p["bairro"])} · '
             f'{ui.esc(info_p["cidade"])}</span>',
             ui.barra_celula(format_litros_curto(r["litros"]), r["litros"] / max_l, theme.COLORS["navy_ui"]),
             format_brl_curto(r["faturamento"]),
@@ -508,17 +581,20 @@ def _kpis_posto(posto, per, grande=True):
     cls_aut = {"critico": "alerta-critico", "atencao": "alerta-atencao"}.get(pior["status"], "")
     ui.grade_kpis([
         ui.kpi("Faturado", format_brl_curto(ind["faturamento"]),
-               ui.delta_html(_var(ind["faturamento"], ant["faturamento"])) + comp, "💰", "grande"),
+               ui.delta_html(_var(ind["faturamento"], ant["faturamento"])) + comp, "💰", "grande",
+               spark=tendencia("faturamento", posto)),
         ui.kpi("Litros vendidos", format_litros(ind["litros"]),
-               ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽", "grande"),
+               ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽", "grande",
+               spark=tendencia("litros", posto)),
         ui.kpi("Margem bruta", format_brl_curto(ind["margem"]),
                f"{format_pct_simples(ind['margem_pct'], 1)} do faturamento · "
-               + ui.delta_html(_var(ind["margem"], ant["margem"])), "📈", "grande destaque"),
+               + ui.delta_html(_var(ind["margem"], ant["margem"])), "📈", "grande destaque",
+               spark=tendencia("margem", posto)),
         ui.kpi("Margem por litro", format_rs_litro(ind["margem_litro"]),
                ui.delta_html(_var(ind["margem_litro"], ant["margem_litro"])) + comp, "🧮", "grande"),
         ui.kpi("Em estoque", format_litros(est["estoque"].sum()),
                f"{format_pct_simples(est['estoque'].sum() / est['capacidade'].sum() * 100, 0)} da capacidade · "
-               f"medição de {est['data'].max():%d/%m}", "🛢️", "grande"),
+               f"medição de {est['data'].max():%d/%m}", "🛢️", "grande", spark=tendencia("estoque", posto)),
         ui.kpi("Dias de autonomia", f"{format_decimal(aut, 1)} dias",
                f"o mais baixo: {pior['produto']} com {format_decimal(pior['autonomia'], 1)} "
                f"dia{'s' if pior['autonomia'] >= 2 else ''}", "⏱️", f"grande {cls_aut}"),
@@ -530,8 +606,12 @@ def aba_resumo(posto, per, dfp, meus):
     ind, est = _kpis_posto(posto, per)
     problemas = [a for a in meus if a.nivel in ("critico", "atencao")]
     if problemas:
-        itens = " · ".join(f"{a.icone} {ui.esc(a.resumo)}" for a in problemas)
-        ui.md(f'<div class="bloco" style="padding:.7rem 1rem"><b>Alertas deste posto:</b> {itens}</div>')
+        if ui.novo():
+            itens = "".join(f'<span class="chip {a.nivel}">{ui.esc(a.resumo)}</span>' for a in problemas)
+            ui.md(f'<div class="chips"><span class="chips-rotulo">Alertas deste posto</span>{itens}</div>')
+        else:
+            itens = " · ".join(f"{a.icone} {ui.esc(a.resumo)}" for a in problemas)
+            ui.md(f'<div class="bloco" style="padding:.7rem 1rem"><b>Alertas deste posto:</b> {itens}</div>')
         st.button("Ver os alertas deste posto →", key=f"ver_alertas_{posto}", type="tertiary",
                   on_click=lambda: st.session_state.update({f"aba_{posto}": "Alertas"}))
 
@@ -769,16 +849,17 @@ def aba_alertas_posto(posto, meus):
         if not lista:
             continue
         ui.secao(titulo)
-        cols = st.columns(2)
-        for i, a in enumerate(lista):
-            with cols[i % 2]:
-                ui.md(ui.alerta_html(a, mostrar_posto=False))
-                if a.aba == "Auditoria":
-                    st.button("Ver na Auditoria →", key=f"al_{posto}_{i}_{a.chave}", type="tertiary",
-                              on_click=ir_para, args=(PAGINA_AUDITORIA, "Auditoria", posto))
-                elif a.aba != "Alertas":
-                    st.button(f"Ver {a.aba} →", key=f"al_{posto}_{i}_{a.chave}", type="tertiary",
-                              on_click=lambda aba=a.aba: st.session_state.update({f"aba_{posto}": aba}))
+        grade_alertas(lista, f"al_{posto}_{nivel}", acao_alerta_do_posto(posto), mostrar_posto=False)
+
+
+def acao_alerta_do_posto(posto):
+    def acao(a):
+        if a.aba == "Auditoria":
+            return "Ver na Auditoria →", ir_para, (PAGINA_AUDITORIA, "Auditoria", posto)
+        if a.aba != "Alertas":
+            return f"Ver {a.aba} →", lambda aba=a.aba: st.session_state.update({f"aba_{posto}": aba}), ()
+        return None, None, ()
+    return acao
 
 
 # ============================================================ envio =========
@@ -979,12 +1060,7 @@ def pagina_alertas():
         if not grupo:
             continue
         ui.secao(f"{titulo} ({len(grupo)})")
-        cols = st.columns(2)
-        for i, a in enumerate(grupo):
-            with cols[i % 2]:
-                ui.md(ui.alerta_html(a))
-                st.button(rotulo_abrir(a), key=f"pa_{i}_{a.chave}", type="tertiary",
-                          on_click=ir_para, args=(f"⛽ {a.posto}", a.aba, a.posto))
+        grade_alertas(grupo, f"pa_{nivel}", acao_abrir_posto)
 
     ui.secao("📱 Alertas no celular", "O motor de alertas roda sozinho depois de cada atualização — o dono "
              "não precisa estar com o painel aberto.")
@@ -1021,6 +1097,12 @@ GRAVIDADE = {"normal": ("ok", "Correção normal"), "atencao": ("atencao", "Aten
 
 
 def sinal_html(s: antifraude.Sinal) -> str:
+    if ui.novo():
+        return (f'<details class="alerta-linha {s.nivel}"><summary><span class="al-ponto"></span>'
+                f'<span class="al-corpo"><span class="al-titulo">{ui.esc(s.titulo)}</span>'
+                f'<span class="al-resumo">{ui.esc(s.detalhe)}</span></span>'
+                f'<span class="al-posto">{ui.esc(s.posto.replace("B2 ", ""))}</span></summary>'
+                f'<div class="al-det"><b>Por que importa:</b> {ui.esc(s.porque)}</div></details>')
     return (f'<div class="alerta {s.nivel}"><div class="a-topo">'
             f'<span class="a-titulo">{s.icone} {ui.esc(s.titulo.upper())}</span>'
             f'<span class="a-posto">{ui.esc(s.posto)}</span></div>'
@@ -1053,9 +1135,9 @@ def pagina_auditoria():
                                   label_visibility="collapsed") or "Toda a rede"
     lista = sinais if filtro == "Toda a rede" else [s for s in sinais if s.posto == filtro]
     if lista:
-        cols = st.columns(2)
+        cols = None if ui.novo() else st.columns(2)
         for i, s in enumerate(lista):
-            with cols[i % 2]:
+            with (st.container() if cols is None else cols[i % 2]):
                 ui.md(sinal_html(s))
     else:
         st.success("Nenhum sinal no período. 👏")

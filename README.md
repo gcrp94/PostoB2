@@ -66,6 +66,11 @@ PROPRIETÁRIO / ADMINISTRAÇÃO                 GERENTE (só o próprio posto)
 * **📋 Reunião de Gerentes** — o placar do mês, posto × indicador, com a
   pauta sugerida de cada gerente e a ficha para imprimir.
 
+**Painel antigo ou novo.** No topo do menu lateral há o botão **Painel antigo |
+Painel novo** (ou `?visual=antigo` no endereço). Os números e as telas são os
+mesmos; muda só a aparência: ícones de traço único, tendência de 30 dias nos
+cartões, alertas em linhas que abrem, menos peso nas tabelas e gráficos.
+
 **Margem bruta, não "lucro".** A margem bruta (faturamento − custo do
 combustível) é o número principal de todas as telas: é o que a planilha
 sustenta sozinha. O **resultado depois das despesas** aparece só na aba
