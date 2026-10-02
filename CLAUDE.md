@@ -225,15 +225,34 @@ visual antigo e o novo para aprovar.
 
 ---
 
-## Publicação (desenhada, não feita)
+## Publicação e operação (no ar desde 29–30/09/2026)
 
-Streamlit Community Cloud + repositório privado. Com `[github]` no secrets,
-o envio pelo painel grava a planilha no repositório pela API
-(`armazenamento._github_put`) e registra no `data/envios.csv`; o Actions
-monta a base, roda os testes, dispara os alertas e publica
-(`data/alertas_enviados.csv` vai junto, senão reenviaria tudo). Sem
-`[usuarios]` no secrets, o app fica em modo demonstração — **qualquer um
-entra como proprietário**.
+* **Painel:** Streamlit Community Cloud, `https://b2gestao.streamlit.app`
+  (app real em `/~/+/`, dentro de um iframe), repositório privado
+  `gcrp94/PostoB2`. Sem `[usuarios]` nos Secrets, o app fica em modo
+  demonstração — **qualquer um entra como proprietário** (proposital).
+* **Envio pelo painel:** com `[github]` nos Secrets, a planilha vai ao
+  repositório pela API (`armazenamento._github_put`) e o histórico fica em
+  `data/envios.csv`. O disco da nuvem NÃO é permanente: sem `[github]`, o envio
+  se perde; a agenda editada na nuvem (`data/assistente_agenda.json`) volta ao
+  padrão no reinício.
+* **Actions:** `atualizar-base.yml` (push de `data/**/*.xlsx` ou manual: base →
+  testes → alertas → `--chegada` → publica `data/base`, `alertas_enviados.csv`,
+  `auditoria.csv`) e `manter-app-acordado.yml` (despertador, cron de 4 h).
+  O Actions também commita em `main`: faça `git pull --rebase` antes de enviar.
+* **Segredos (só os nomes):** Actions — `B2_CANAL=telegram`,
+  `B2_TELEGRAM_TOKEN`, `B2_TELEGRAM_CHATS`; Streamlit — `B2_TELEGRAM_TOKEN`
+  (+ opcionais). Nunca versionar token, `secrets.toml` nem
+  `config_assistente.local.json`.
+* **O robô vive na nuvem.** O painel local está com o Telegram desligado
+  (`telegram_ativo: false`): dois ouvintes no mesmo robô dão erro 409 e
+  respostas em dobro. O `Abrir App.bat` fecha painel antigo na porta 8520 antes
+  de subir (um painel antigo na memória já causou `AttributeError` no login).
+* **Apresentação comercial:** `apresentacao/` (deck HTML de 27 slides, modo
+  estudo com roteiro; `construir.py` gera o arquivo final). Está no `.gitignore`
+  — é material de venda, fica só local.
+* **Contexto para outra conta do Claude:** `RESUMO_PARA_CLAUDE.md` (autônomo,
+  sem segredos). O manual de uso é o `README.md`.
 
 ## Ideias para a fase 2 (conversadas, não feitas)
 

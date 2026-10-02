@@ -20,3 +20,7 @@ data/*/_versoes/
 # Pastas temporárias da gravação atômica da base
 data/base_nova/
 data/base_anterior/
+
+# Material de venda, só local (apresentação em HTML)
+apresentacao/
+Abrir Apresentacao.bat
