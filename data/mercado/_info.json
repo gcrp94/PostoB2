@@ -1,0 +1,19 @@
+{
+ "gerado_em": "2026-10-05T11:14:46",
+ "primeira_coleta": "2025-07-01",
+ "ultima_coleta": "2026-09-28",
+ "postos_com_preco": 28,
+ "postos_cadastrados": 59,
+ "linhas": 3263,
+ "arquivos": [
+  "2026-07-diesel-gnv.csv",
+  "2026-07-gasolina-etanol.csv",
+  "2026-08-diesel-gnv.csv",
+  "2026-08-gasolina-etanol.csv",
+  "2026-09-diesel-gnv.csv",
+  "2026-09-gasolina-etanol.csv",
+  "ca-2025-02.zip",
+  "ca-2026-01.zip"
+ ],
+ "fonte": "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis"
+}

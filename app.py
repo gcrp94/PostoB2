@@ -28,6 +28,7 @@ from src import alertas as al  # noqa: E402
 from src import analytics as an  # noqa: E402
 from src import armazenamento as arm  # noqa: E402
 from src import assistente_ui  # noqa: E402
+from src import radar_ui  # noqa: E402
 from src import antifraude, auditoria, auth, base, charts, notificacoes, reuniao, theme, ui, validacao  # noqa: E402
 from src.formatting import (  # noqa: E402
     format_brl, format_brl_curto, format_decimal, format_int, format_litros, format_litros_curto, format_pct,
@@ -100,7 +101,7 @@ def tendencia(coluna: str, posto: str | None = None, dias: int = 30):
 
 
 ICONES_MENU = {"🎯": "dashboard", "🏠": "monitoring", "📋": "groups", "⛽": "local_gas_station",
-               "📤": "upload_file", "🔔": "notifications", "🛡": "shield", "📑": "history",
+               "📤": "upload_file", "🔔": "notifications", "🛡": "shield", "📑": "history", "📡": "radar",
                "💬": "smart_toy", "⚙": "settings"}
 
 
@@ -139,6 +140,7 @@ def acao_abrir_posto(a):
 
 PAGINA_AUDITORIA = "🛡️ Auditoria"
 PAGINA_REUNIAO = "📋 Reunião de Gerentes"
+PAGINA_RADAR = "📡 Radar de Mercado"
 
 
 def rotulo_abrir(a) -> str:
@@ -238,7 +240,7 @@ def lateral():
             paineis = ["🎯 Central do Proprietário", "🏠 Visão da Rede", PAGINA_REUNIAO] + \
                       [f"⛽ {p}" for p in POSTOS]
             n_alertas = sum(a.nivel in ("critico", "atencao") for a in ALERTAS)
-            gestao = ["📤 Alimentar dados", f"🔔 Alertas ({n_alertas})", PAGINA_AUDITORIA, "📑 Atualizações",
+            gestao = ["📤 Alimentar dados", f"🔔 Alertas ({n_alertas})", PAGINA_AUDITORIA, PAGINA_RADAR, "📑 Atualizações",
                       "💬 B2 Assistente", "⚙️ Administração"]
             st.session_state.setdefault("menu_paineis", paineis[0])
             st.session_state.setdefault("menu_gestao", None)
@@ -1334,6 +1336,8 @@ elif pagina.startswith("💬") and usuario.ve_rede:
     assistente_ui.pagina(DF, D["tanques"], POSTOS)
 elif pagina.startswith("🛡️") and usuario.ve_rede:
     pagina_auditoria()
+elif pagina.startswith("📡") and usuario.ve_rede:
+    radar_ui.pagina()
 elif pagina.startswith("📋") and usuario.ve_rede:
     pagina_reuniao()
 elif pagina.startswith("🏠"):

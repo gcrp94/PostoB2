@@ -431,3 +431,123 @@ def dia_semana(d: pd.DataFrame, altura: int = 220) -> go.Figure:
     _base(fig, altura)
     fig.update_yaxes(showticklabels=False, showgrid=False, range=[0, float(d["vendas_l"].max()) * 1.25])
     return fig
+
+
+# ------------------------------------------------------------------- radar ---
+def radar_serie(s: pd.DataFrame, produto: str, nome: str, altura: int = 330) -> go.Figure:
+    """Semana a semana: a faixa de preços da cidade (mín–máx), a mediana e a linha da unidade."""
+    cor = theme.CORES_COMBUSTIVEL.get(produto, C["navy_ui"])
+    d = s.sort_values("semana")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=d["semana"], y=d["maximo"], mode="lines", line=dict(width=0), showlegend=False,
+                             hoverinfo="skip"))
+    fig.add_trace(go.Scatter(
+        x=d["semana"], y=d["minimo"], mode="lines", line=dict(width=0), fill="tonexty", name="Faixa da cidade (mín–máx)",
+        fillcolor="rgba(29,50,120,.10)", customdata=[[format_brl(a), format_brl(b)] for a, b in zip(d["minimo"], d["maximo"])],
+        hovertemplate="Faixa da cidade: %{customdata[0]} a %{customdata[1]}<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=d["semana"], y=d["mediana"], mode="lines", name="Mediana da cidade", line=dict(color="#8a93a8", width=1.8, dash="dot"),
+        customdata=[format_brl(v) for v in d["mediana"]], hovertemplate="Mediana: %{customdata}<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=d["semana"], y=d["b2"], mode="lines", name=nome, line=dict(color=cor, width=2.8),
+        customdata=[[format_brl(p), f"{int(pos)}º de {int(n)}"] for p, pos, n in zip(d["b2"], d["posicao"], d["n"])],
+        hovertemplate=f"{nome}: %{{customdata[0]}} (%{{customdata[1]}} mais barato)<extra></extra>"))
+    _base(fig, altura, legenda=True)
+    fig.update_layout(hovermode="x unified", margin=dict(r=70))
+    if len(d):
+        ult = d.iloc[-1]
+        fig.add_annotation(x=ult["semana"], y=ult["b2"], text=format_brl(ult["b2"]), showarrow=False, xanchor="left",
+                           xshift=6, font=dict(size=11.5, color=cor))
+        lo, hi = float(d["minimo"].min()), float(d["maximo"].max())
+        passo = 0.2 if hi - lo > 1.2 else 0.1
+        ticks = np.round(np.arange(np.floor(lo / passo) * passo, hi + passo, passo), 2)
+        fig.update_yaxes(range=[lo - 0.06, hi + 0.06], tickvals=ticks, ticktext=[format_brl(t) for t in ticks])
+        meses = pd.to_datetime(d["semana"]).dt.to_period("M").unique()
+        fig.update_xaxes(tickvals=[p.to_timestamp() for p in meses],
+                         ticktext=[nome_mes(p.month, p.year, curto=True) for p in meses])
+    return fig
+
+
+def radar_variacao(v: pd.DataFrame, rotulos: list[str], altura: int = 330) -> go.Figure:
+    """Barras deitadas: quanto cada posto mexeu no preço entre duas datas; o B2 em laranja."""
+    d = v.assign(rotulo=rotulos).sort_values("variacao")
+    sinal = lambda x: ("+" if x > 0 else "") + format_brl(x)
+    fig = go.Figure(go.Bar(
+        y=d["rotulo"], x=d["variacao"], orientation="h",
+        marker=dict(color=[C["orange"] if b else C["navy_ui"] for b in d["eh_b2"]], cornerradius=4),
+        text=[sinal(x) for x in d["variacao"]], textposition="outside", cliponaxis=False, constraintext="none",
+        textfont=dict(size=11.5, color=C["text_primary"]),
+        customdata=[[format_brl(a), format_brl(b)] for a, b in zip(d["preco_a"], d["preco_b"])],
+        hovertemplate="<b>%{y}</b><br>%{customdata[0]} → %{customdata[1]}<extra></extra>"))
+    _base(fig, altura)
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=True, zerolinecolor=C["border"],
+                     range=[min(0, float(d["variacao"].min())) - 0.05, float(d["variacao"].max()) + 0.35])
+    fig.update_yaxes(showgrid=False, automargin=True, tickfont=dict(size=11.5, color=C["text_primary"]))
+    mediana = float(d["variacao"].median())
+    fig.add_vline(x=mediana, line_dash="dot", line_color="#8a93a8", line_width=1.5,
+                  annotation_text=f"mediana {sinal(mediana)}", annotation_position="top", annotation_font_size=11,
+                  annotation_font_color="#6b7489")
+    fig.update_layout(bargap=0.3, margin=dict(t=26))
+    return fig
+
+
+def radar_dia(h: pd.DataFrame, produto: str, nome: str, altura: int = 330) -> go.Figure:
+    """Dia a dia (Menor Preço): a faixa da cidade, a mediana e a linha da unidade. `h` vem de `nota_parana.historico_diario`."""
+    cor = theme.CORES_COMBUSTIVEL.get(produto, C["navy_ui"])
+    d = h.sort_values("dia")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=d["dia"], y=d["maximo"], mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(
+        x=d["dia"], y=d["minimo"], mode="lines", line=dict(width=0), fill="tonexty", name="Faixa da cidade (mín–máx)",
+        fillcolor="rgba(29,50,120,.10)", customdata=[[format_brl(a), format_brl(b)] for a, b in zip(d["minimo"], d["maximo"])],
+        hovertemplate="Faixa da cidade: %{customdata[0]} a %{customdata[1]}<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=d["dia"], y=d["mediana"], mode="lines", name="Mediana da cidade", line=dict(color="#8a93a8", width=1.8, dash="dot"),
+        customdata=[format_brl(v) for v in d["mediana"]], hovertemplate="Mediana: %{customdata}<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=d["dia"], y=d[nome], mode="lines+markers", name=nome, line=dict(color=cor, width=2.8), marker=dict(size=6),
+        connectgaps=True, customdata=[format_brl(p) for p in d[nome]],
+        hovertemplate=f"{nome}: %{{customdata}}<extra></extra>"))
+    _base(fig, altura, legenda=True)
+    fig.update_layout(hovermode="x unified", margin=dict(r=70))
+    ult = d.dropna(subset=[nome]).iloc[-1]
+    fig.add_annotation(x=ult["dia"], y=ult[nome], text=format_brl(ult[nome]), showarrow=False, xanchor="left", xshift=6,
+                       font=dict(size=11.5, color=cor))
+    lo, hi = float(d["minimo"].min()), float(d["maximo"].max())
+    passo = 0.2 if hi - lo > 1.2 else 0.1
+    ticks = np.round(np.arange(np.floor(lo / passo) * passo, hi + passo, passo), 2)
+    fig.update_yaxes(range=[lo - 0.06, hi + 0.06], tickvals=ticks, ticktext=[format_brl(t) for t in ticks])
+    dias = pd.to_datetime(d["dia"])
+    passo_dias = max(1, len(dias) // 8)
+    fig.update_xaxes(tickvals=list(dias[::passo_dias]), ticktext=[f"{x:%d/%m}" for x in dias[::passo_dias]])
+    return fig
+
+
+def radar_mapa(f: pd.DataFrame, rotulos: list[str], altura: int = 440) -> go.Figure:
+    """Os postos de Guarapuava no mapa, com o preço: o B2 em laranja, os demais em azul. `f` tem lat, lon, preco, unidade_b2.
+
+    A posição vem de um geohash aproximado (alguns postos têm só ~150 m de precisão): quem cai no mesmo ponto é afastado
+    um pouquinho para não ficar um em cima do outro.
+    """
+    d = f.assign(rotulo=rotulos).dropna(subset=["lat", "lon"]).copy()
+    d["_k"] = d["lat"].round(4).astype(str) + "|" + d["lon"].round(4).astype(str)
+    ordem = d.groupby("_k").cumcount()
+    ang = ordem * 2.4
+    raio = 0.0007 * (d.groupby("_k")["_k"].transform("size") > 1) * (1 + ordem // 6)
+    d["lat"] = d["lat"] + raio * np.sin(ang)
+    d["lon"] = d["lon"] + raio * np.cos(ang)
+    eh_b2 = d["unidade_b2"] != ""
+    menor = d["preco"] == d["preco"].min()
+    rot = [format_brl(p) if (b or m) else "" for p, b, m in zip(d["preco"], eh_b2, menor)]
+    fig = go.Figure(go.Scattermap(
+        lat=d["lat"], lon=d["lon"], mode="markers+text", text=rot, textposition="top center",
+        textfont=dict(size=12, color=C["text_primary"]),
+        marker=dict(size=[19 if b else 14 for b in eh_b2], color=[C["orange"] if b else C["navy_ui"] for b in eh_b2], opacity=0.92),
+        customdata=[[r, format_brl(p)] for r, p in zip(d["rotulo"], d["preco"])],
+        hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<extra></extra>"))
+    fig.update_layout(height=altura, margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+                      map=dict(style="carto-positron", zoom=12.1,
+                               center=dict(lat=float(d["lat"].mean()), lon=float(d["lon"].mean()))),
+                      hoverlabel=dict(bgcolor="#ffffff", bordercolor=C["border"],
+                                      font=dict(family=theme.FONTE_FAMILIA, size=12, color=C["text_primary"])))
+    return fig

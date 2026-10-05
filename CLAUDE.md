@@ -59,6 +59,9 @@ src/
   assistente_telegram.py / assistente_ntfy.py   os transportes do celular.
   assistente_ui.py  tela 💬 B2 Assistente e os ouvintes (um por processo).
   assistente_agenda.py  disparos automáticos (horário, chegada, cobrança).
+  mercado.py / radar_ui.py   Radar de Mercado: preços PÚBLICOS da ANP (ver seção abaixo).
+  nota_parana.py     Menor Preço (preço da NFC-e): coleta diária LOCAL + análises (ver seção abaixo).
+coletar_nota_parana.py  Roda a coleta (varre Guarapuava em grade, com pausas); `Coletar Menor Preco.bat`.
   auditoria.py      trilha do que mudou em dado já recebido.
   antifraude.py     sinais de fraude (tela 🛡️ Auditoria).
   reuniao.py        placar, metas e pauta da reunião de gerentes.
@@ -253,6 +256,72 @@ visual antigo e o novo para aprovar.
   — é material de venda, fica só local.
 * **Contexto para outra conta do Claude:** `RESUMO_PARA_CLAUDE.md` (autônomo,
   sem segredos). O manual de uso é o `README.md`.
+
+## Radar de Mercado — protótipo (05/10/2026)
+
+Pedido do usuário: um radar de concorrência com dado público. Tela **📡 Radar de Mercado** (Gestão, só
+proprietário/administração), módulo `src/mercado.py`, tela `src/radar_ui.py`, coleta `atualizar_mercado.py`,
+testes `tests/test_mercado.py`.
+
+* **Fonte: ANP, dados abertos** (CSV por posto, pesquisa semanal). Zips semestrais (`dsas/ca/ca-AAAA-SS.zip`) para o
+  que já fechou + CSVs mensais (`dsan/AAAA/...`, **nomes irregulares**, um de 2026 sem ".csv") para os meses que
+  sobram. `descobrir_links`/`selecionar` leem a página; HEAD dá 403, **GET com User-Agent funciona**. Brutos (~70 MB)
+  em `data/mercado/bruto/` (`.gitignore`); só o Parquet filtrado (Guarapuava e Candói, ~30 KB) vai para o Git.
+* **É AMOSTRA.** A ANP colhe preço de uns 5 a 14 postos por semana em Guarapuava (51 cadastrados); **Candói não é
+  pesquisado**. Dos 5 postos do B2 só **Centro** (CNPJ final 0001-77, bandeira branca) e **Conradinho** (0002-58,
+  Raízen) têm preço. As outras unidades estão no cadastro: Primavera (0004-10), Bonsucesso (0003-39) e Candói (outra
+  empresa, "B2 Comércio de Combustíveis"). O B2 de Guarapuava é achado pela raiz do CNPJ `09182266`.
+* **Confirmado na ANP (05/10/2026, cadastro do Brasil inteiro):** "Begnini Comércio de Combustíveis LTDA" (CNPJ
+  09.182.266) = os postos B2 de Guarapuava, **4 unidades**: Centro 0001-77 (Rua Guaíra, 3148, branca), **Índio** 0002-58
+  (Av. Manoel Ribas, 2760, "Posto Índio", bairro Conradinho, Raízen), Bonsucesso 0003-39 (branca) e Primavera 0004-10
+  (Rua João Fortkamp, 721, branca; vínculo de bandeira só em 07/04/2026). **Candói é outra empresa:** "B2 Comércio de
+  Combustíveis LTDA" (10.592.615/0001-08, Av. XV de Novembro, 1571, branca). Existe também "Auto Posto Begnini" em
+  Catanduvas-SC (outro CNPJ, Ipiranga): não é B2. O nome que o dono usa vem de `NOMES_B2` (CNPJ -> nome).
+* **Comparar a MÉDIA entre duas datas engana** (a amostra muda): `variacao` só compara postos com preço nas duas pontas.
+* **Dados reais num painel simulado.** A tela diz "dados públicos reais" e "protótipo". **B2 Índio = Posto Índio** (Av.
+  Manoel Ribas, 2760, bairro Conradinho no cadastro) — confirmado pelo usuário; o nome vem de `NOMES_B2` (CNPJ).
+* **Nota Paraná (Menor Preço):** não há API oficial documentada nem termos legíveis; ver a seção seguinte (coleta local
+  de teste, com autorização do usuário). Caminho para virar produto: pedir o aval do estado
+  (`atendimento-aplicativo@notaparana.pr.gov.br`).
+* Achado sensível: a aditivada do B2 Centro custou **igual à comum em todas as coletas** (mercado: mediana +R$ 0,30).
+  Mostrar como pergunta de estratégia, nunca como crítica ao dono.
+
+## Menor Preço (Nota Paraná) — coleta local de teste (05/10/2026)
+
+Pedido do usuário: "varrer a cidade inteira e coletar preço de todos os postos", com pausas, **só local, em outra aba**,
+uma vez por dia. Módulo `src/nota_parana.py`, comando `coletar_nota_parana.py` (+ `Coletar Menor Preco.bat`), segunda aba
+da tela 📡 (`radar_ui._aba_menor_preco`), testes `tests/test_nota_parana.py` (sem internet: `abrir` falso).
+
+* **A fonte:** o app Angular `menorpreco.notaparana.pr.gov.br` chama `/api/v1/produtos?local=<geohash>&raio=<km>&tp_comb=<1..4>
+  &offset=&data=-1&ordem=0` **sem login nem cookie**; devolve o último preço de cada combustível por posto, da NFC-e, com
+  minutos de atraso (`datahora` é UTC — o módulo grava em Brasília, −3 h fixo). Traz razão social/fantasia, endereço, `local`
+  (geohash do posto, aproximado) e `codigo` do estabelecimento (estável: é a chave `loja`). **Não traz CNPJ**: o B2 é
+  reconhecido pelo endereço (`ENDERECOS_B2`, vindo do cadastro da ANP). `tp_comb` 1 gasolina, 2 aditivada, 3 etanol, 4 diesel.
+* **O servidor só enxerga perto do ponto** e limita o raio (~7 km) e a página (**50 ofertas**; `total` conta linhas brutas e
+  a lista vem deduplicada, então com total ≤ 50 a 2ª página só repete; acima de 50, como no diesel, ela traz posto novo).
+  **1ª varredura em grade (05/10/2026, 65 consultas, 14 min, sem bloqueio): 32 postos de Guarapuava — exatamente os mesmos
+  que uma consulta larga a partir do centro (raio 8) já achava.** Por isso o dia a dia usa só `CENTRO_LARGO` (5 consultas,
+  ~1 min, `modo="diaria"`) e a grade (`grade()`: caixa `CAIXA_GUARAPUAVA`, pontos a 4,5 km, raio 4 km, sem buraco — há teste)
+  roda na 1ª vez e a cada 30 dias (`modo="completa"`, `precisa_varredura_completa`) para pegar posto novo na periferia.
+  Ponto sem posto não pergunta os outros 3 combustíveis.
+* **O app lista 32 dos 51 postos cadastrados na ANP em Guarapuava** (`conferir_cadastro`, tela mostra os 20 ausentes):
+  os ausentes são sobretudo postos de rodovia (BR-277, PR-460) e uns do centro/Vila Carli que não aparecem. **B2 Primavera
+  (Rua João Fortkamp, 721) NÃO aparece no Menor Preço** — nem na grade nem no raio largo; Centro, Bonsucesso e Índio aparecem.
+  Hipóteses a conferir com o dono: o posto não emite NFC-e com o combustível codificado, ou foi (re)aberto há pouco (vínculo
+  de bandeira só em 07/04/2026). **Candói:** o endereço da ANP para o B2 Candói (Av. XV de Novembro, 1571) aparece no app como
+  "Rodoil – Vissoto & Ramos Comércio de Combustíveis" — conferir antes de incluir Candói (hoje fora da varredura).
+* **Série = DIA DA COLETA, não data da nota.** O app só mostra a última nota de cada posto; um posto parado repete a mesma
+  nota por dias. Por isso `_sem_repetidas` dedupa por (nota + dia da coleta) — cada coleta fica completa — e
+  `historico_diario`/`estado` contam pelo `coletado_em`. A série só aparece a partir do 2º dia de coleta.
+* **`tp_comb` mistura:** a V-Power vem na busca de comum e a "Gasolina Original" (comum) na de aditivada; e o `cdanp` do B2
+  Centro marca "comum" com código de aditivada. Por isso `classificar` lê o **nome** que o posto escreveu na nota.
+* **Conduta (não mexer sem falar com o usuário):** User-Agent honesto (`B2-Gestao ... teste local`), pausa sorteada de 8–20 s,
+  uma coleta por dia (`ja_coletou_hoje`), e **parar ao primeiro sinal de bloqueio** (401/403/429, HTTP ≠ 200, JSON diferente):
+  `ColetaInterrompida` — nunca contornar, nunca insistir. Rede que oscila: UMA nova tentativa depois de 45 s.
+* **Só local:** `data/mercado/nota_parana/` (`ofertas.parquet`, `coletas.csv`) está no `.gitignore`; a aba só aparece se esse
+  arquivo existe, então a nuvem não a mostra. Agendar: `schtasks` no próprio `.bat` (não foi agendado).
+* **Paginação:** a coleta guarda `pagina` por oferta e informa quantos postos só vieram da 2ª página em diante
+  (`extras_de_paginacao`). Em 05/10 foram 1 (diesel, total 56 > 50).
 
 ## Ideias para a fase 2 (conversadas, não feitas)
 

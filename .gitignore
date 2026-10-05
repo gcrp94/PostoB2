@@ -24,3 +24,9 @@ data/base_anterior/
 # Material de venda, só local (apresentação em HTML)
 apresentacao/
 Abrir Apresentacao.bat
+
+# Dados brutos de mercado (ANP) — grandes e públicos; o painel usa só o Parquet filtrado
+data/mercado/bruto/
+
+# Menor Preço (Nota Paraná): coleta local de teste, nunca vai ao repositório
+data/mercado/nota_parana/

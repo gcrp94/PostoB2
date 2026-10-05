@@ -35,6 +35,7 @@ Claude, use o **[RESUMO_PARA_CLAUDE.md](RESUMO_PARA_CLAUDE.md)**.
 | **`Atualizar Dados.bat`** | Depois de pôr planilhas novas nas pastas: monta a base e roda o motor de alertas. |
 | **`Gerar Dados Simulados.bat`** | Volta ao cenário original da demonstração. **Sobrescreve as planilhas simuladas — não rode com dados reais.** |
 | **`Abrir Apresentacao.bat`** | Abre a apresentação comercial em HTML (ver seção 11). |
+| **`Coletar Menor Preco.bat`** | *Teste local.* Coleta o preço das notas fiscais (Menor Preço do Paraná) de todos os postos de Guarapuava, com pausas, no máximo uma vez por dia. Alimenta a 2ª aba da tela 📡 Radar de Mercado; os dados ficam só neste computador. |
 
 **Acesso de demonstração:** a tela de login tem botões de acesso rápido
 (Proprietário, Gerente do Candói, Gerente da Primavera, Administração). A
