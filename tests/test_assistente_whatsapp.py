@@ -247,3 +247,25 @@ def test_lid_de_estranho_resolvido_para_telefone_fora_da_lista_continua_ignorado
     c = ClienteComLid({"123456789012345": "5511977776666"})
     s._tratar(c, evento_lid())
     assert c.enviadas == [] and any("…6666" in a and "telefone" in a for a in avisos)
+
+
+# ------------------------------------- servidor: ambiente, modo mudo, dois aparelhos ---
+def test_autorizados_do_ambiente_so_entram_quando_pedido_e_nunca_vao_para_o_arquivo(tmp_path, monkeypatch):
+    arq = tmp_path / "cfg.json"
+    wa.autorizar("(42) 99999-0001", arquivo=arq)
+    monkeypatch.setenv("B2_WHATSAPP_AUTORIZADOS", "42 98888-0002, 5542977770003;lixo")
+    assert wa.ler_config(arq)["autorizados"] == ["5542999990001"]                       # o arquivo não mistura o ambiente
+    assert wa.ler_config(arq, ambiente=True)["autorizados"] == ["5542977770003", "5542988880002", "5542999990001"]
+    wa.autorizar("42 96666-0004", arquivo=arq)                                         # gravar não leva o que veio do ambiente
+    assert "5542988880002" not in arq.read_text(encoding="utf-8")
+
+
+def test_modo_mudo_escuta_mas_nao_responde_para_nao_dobrar_a_resposta_com_outro_aparelho():
+    avisos = []
+    s = wa.ServicoWhatsApp(roteador(), avisar=avisos.append, dormir=lambda s_: None, mudo=True)
+    c = ClienteFalso()
+    s._tratar(c, evento("resumo centro"))
+    assert c.enviadas == [] and any("(mudo)" in a and "NÃO respondi" in a for a in avisos)
+    ativo = servico()
+    ativo._tratar(c, evento("resumo centro"))
+    assert len(c.enviadas) == 1                                                       # sem o mudo, responde normalmente

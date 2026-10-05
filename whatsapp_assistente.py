@@ -4,12 +4,15 @@
     python whatsapp_assistente.py --autorizar 42999999999 --nome "Gustavo"   # libera um número
     python whatsapp_assistente.py --remover 42999999999
     python whatsapp_assistente.py --listar             # quem está autorizado
+    python whatsapp_assistente.py --mudo               # logado e escutando, mas NÃO responde (outro aparelho responde)
+    python whatsapp_assistente.py --qr-terminal        # desenha o QR no terminal (parear por SSH, num servidor)
 
 O robô só responde a quem está na lista e só com dados simulados. Pare com Ctrl+C.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import webbrowser
 
@@ -25,6 +28,9 @@ def main() -> int:
     ap.add_argument("--remover", metavar="NUMERO", help="tira um número da lista")
     ap.add_argument("--listar", action="store_true", help="mostra quem está autorizado")
     ap.add_argument("--abrir", action="store_true", help="abre a página do QR no navegador")
+    ap.add_argument("--mudo", action="store_true", default=os.environ.get("B2_WHATSAPP_MUDO") == "1",
+                    help="fica logado e escutando, mas não responde (para ter dois aparelhos sem resposta em dobro)")
+    ap.add_argument("--qr-terminal", action="store_true", help="desenha o QR também no terminal")
     args = ap.parse_args()
 
     if args.autorizar:
@@ -46,10 +52,13 @@ def main() -> int:
             print(f"  {wa.mascarar(n)}  {cfg['nomes'].get(n, '')}")
         return 0
 
-    if not wa.ler_config()["autorizados"]:
+    if not wa.ler_config(ambiente=True)["autorizados"]:
         print("Atenção: ninguém está autorizado, então o robô não vai responder a ninguém.\n"
               "         Libere o seu número com:  python whatsapp_assistente.py --autorizar 42999999999\n")
-    servico = wa.ServicoWhatsApp(wa.Roteador(wa.responder_padrao(), lambda: wa.ler_config()["autorizados"]))
+    servico = wa.ServicoWhatsApp(wa.Roteador(wa.responder_padrao(), lambda: wa.ler_config(ambiente=True)["autorizados"]),
+                                 mudo=args.mudo, qr_terminal=args.qr_terminal)
+    if args.mudo:
+        print("MODO MUDO: este aparelho escuta e registra, mas não responde.")
     servidor = wa.servir_pagina_qr(servico)
     url = f"http://127.0.0.1:{wa.PORTA_QR}/"
     print(f"Página do QR e da situação: {url}")

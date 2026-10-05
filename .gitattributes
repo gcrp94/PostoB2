@@ -1,0 +1,6 @@
+
+# Scripts e unidades do servidor Linux: sempre com quebra de linha LF (CRLF quebra no bash/systemd)
+deploy/**/*.sh text eol=lf
+deploy/**/*.service text eol=lf
+deploy/**/*.timer text eol=lf
+deploy/**/*.exemplo text eol=lf

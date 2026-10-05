@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import random
 import re
 import threading
@@ -51,6 +52,11 @@ def normalizar_numero(texto) -> str:
     return "55" + n if len(n) in (10, 11) else n
 
 
+def _numero_valido(n: str) -> bool:
+    """Celular/fixo brasileiro com DDI: 55 + DDD + 8 ou 9 dígitos (12 ou 13 dígitos). Descarta lixo da configuração."""
+    return n.startswith("55") and len(n) in (12, 13)
+
+
 def variantes(numero: str) -> set[str]:
     """O WhatsApp às vezes tira (ou põe) o 9º dígito dos celulares brasileiros: aceita os dois jeitos."""
     n = normalizar_numero(numero)
@@ -68,14 +74,20 @@ def mascarar(numero: str) -> str:
 
 
 # ------------------------------------------------------------------- config ---
-def ler_config(arquivo: Path = CONFIG) -> dict:
+def ler_config(arquivo: Path = CONFIG, ambiente: bool = False) -> dict:
+    """Os números autorizados. Num servidor (sem o arquivo local), `B2_WHATSAPP_AUTORIZADOS` ("5542..., 5542...") os
+    acrescenta — só com `ambiente=True`, para `autorizar`/`remover` não gravarem no arquivo o que veio do ambiente."""
     cfg = {"autorizados": [], "nomes": {}}
     if arquivo.exists():
         try:
             cfg.update(json.loads(arquivo.read_text(encoding="utf-8")))
         except ValueError:
             pass                       # arquivo corrompido: volta ao padrão (ninguém autorizado)
-    cfg["autorizados"] = sorted({normalizar_numero(n) for n in cfg.get("autorizados", []) if normalizar_numero(n)})
+    numeros = {normalizar_numero(n) for n in cfg.get("autorizados", [])}
+    if ambiente:
+        bruto = os.environ.get("B2_WHATSAPP_AUTORIZADOS", "").replace("\n", ",").replace(";", ",")
+        numeros |= {normalizar_numero(n) for n in bruto.split(",")}
+    cfg["autorizados"] = sorted(n for n in numeros if _numero_valido(n))
     return cfg
 
 
@@ -246,7 +258,12 @@ class ServicoWhatsApp:
     """Conecta a sessão, escuta e responde. Um por processo."""
 
     def __init__(self, roteador: Roteador, avisar: Callable[[str], None] = print,
-                 arquivo_sessao: Path = ARQ_SESSAO, dormir: Callable[[float], None] = time.sleep):
+                 arquivo_sessao: Path = ARQ_SESSAO, dormir: Callable[[float], None] = time.sleep,
+                 mudo: bool = False, qr_terminal: bool = False):
+        """`mudo`: fica logado e escutando, mas NÃO responde — para ter o notebook e um servidor logados ao mesmo
+        tempo sem que cada mensagem receba duas respostas. `qr_terminal`: desenha o QR no terminal (pareamento por SSH)."""
+        self._mudo = mudo
+        self._qr_terminal = qr_terminal
         self._rot = roteador
         self._avisar = avisar
         self._arquivo = arquivo_sessao
@@ -276,6 +293,9 @@ class ServicoWhatsApp:
         if saida.texto is None:
             if saida.motivo == "limite":
                 self._avisar(f"[whatsapp] limite de mensagens por minuto ({mascarar(saida.numero)}): ignorada")
+            return
+        if self._mudo:
+            self._avisar(f"[whatsapp] (mudo) vi a mensagem de {mascarar(saida.numero)} e NÃO respondi: outro aparelho responde")
             return
         try:
             self._digitando(cliente, fonte.Chat)
@@ -321,6 +341,9 @@ class ServicoWhatsApp:
         def _qr(_c, dados: bytes):
             with self._trava:
                 self.estado["qr"] = bytes(dados)
+            if self._qr_terminal:
+                import segno
+                segno.make(bytes(dados)).terminal(compact=True)
             self._avisar("[whatsapp] QR novo: escaneie na página local (veja o endereço acima) ou no terminal.")
 
         @cliente.event(PairStatusEv)
@@ -393,7 +416,7 @@ def servir_pagina_qr(servico: ServicoWhatsApp, porta: int = PORTA_QR):
         def do_GET(self):                                       # noqa: N802
             with servico._trava:
                 estado = dict(servico.estado)
-            corpo = pagina_qr(estado, ler_config()["autorizados"]).encode("utf-8")
+            corpo = pagina_qr(estado, ler_config(ambiente=True)["autorizados"]).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")

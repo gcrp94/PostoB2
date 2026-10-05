@@ -1,0 +1,6 @@
+[Unit]
+Description=B2: puxa a base e o código do GitHub
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/b2-atualizar

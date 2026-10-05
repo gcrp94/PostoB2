@@ -182,6 +182,17 @@ WhatsApp em vez do Telegram ("fica mais na mão"). `src/assistente_whatsapp.py`,
   mensagem própria são ignorados em silêncio (log com número mascarado). Aceita o 9º dígito dos dois jeitos e o ID
   alternativo (LID) do remetente. Só com `data/SIMULADO.txt`, como o Telegram. `sessao_whatsapp/` e o config estão no
   `.gitignore`: **a sessão dá acesso à conta, nunca versionar**.
+* **Nuvem, sem custo (pedido do usuário, 05/10/2026):** o GitHub NÃO hospeda processo ligado 24 h (Actions é para
+  build/teste; Codespaces dorme) e a Streamlit Cloud apaga o disco e a sessão muda a cada mensagem — por isso o caminho é
+  uma **VM gratuita sempre ligada** (Oracle Always Free; plano B Google `e2-micro`), com o robô entrando como **2º aparelho
+  vinculado** (QR novo lá, nunca copiando a sessão do notebook: a mesma sessão em dois lugares é derrubada e **a sessão no
+  Git é acesso total à conta**). Kit em `deploy/whatsapp/` (`LEIA-ME.md` é o passo a passo; `instalar.sh`, serviço systemd
+  que reinicia sozinho, `b2-atualizar` puxa a base do GitHub a cada 10 min, backup diário da sessão). **Não testado numa VM
+  real.** Riscos: a Oracle pode recuperar VM gratuita ociosa; Python da VM pode ser < 3.14 (o caminho do robô não usa 3.11+,
+  mas não foi rodado em 3.10).
+* **Dois aparelhos logados = resposta em dobro.** Deixe UM respondendo: o outro com `--mudo` (ou `B2_WHATSAPP_MUDO=1`: loga,
+  escuta, não responde). Em servidor, os autorizados vêm de `B2_WHATSAPP_AUTORIZADOS` (só números 55+DDD, 12–13 dígitos).
+  `--qr-terminal` desenha o QR no terminal (parear por SSH).
 * **Diferenças do Telegram:** sem botões (as sugestões viram lista numerada; "2" executa a 2ª da última resposta), sem
   teclado fixo, sem grupos por enquanto, processo à parte do painel (não usa streamlit). Disparos programados
   (`assistente_agenda`) e alertas automáticos ainda NÃO usam este canal.

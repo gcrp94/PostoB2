@@ -1,0 +1,18 @@
+[Unit]
+Description=B2 Assistente no WhatsApp (sessão logada, teste)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=b2
+WorkingDirectory=/opt/b2gestao
+EnvironmentFile=-/etc/b2-whatsapp.env
+ExecStart=/opt/b2gestao/.venv/bin/python -u whatsapp_assistente.py
+Restart=always
+RestartSec=15
+# o robô só escuta em 127.0.0.1 (página do QR); nada precisa ficar exposto
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

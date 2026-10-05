@@ -1,0 +1,9 @@
+[Unit]
+Description=B2: backup diário da sessão
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+[Unit]
+Description=B2: backup diário da sessão do WhatsApp
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/b2-backup-sessao
