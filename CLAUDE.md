@@ -318,8 +318,11 @@ da tela 📡 (`radar_ui._aba_menor_preco`), testes `tests/test_nota_parana.py` (
 * **Conduta (não mexer sem falar com o usuário):** User-Agent honesto (`B2-Gestao ... teste local`), pausa sorteada de 8–20 s,
   uma coleta por dia (`ja_coletou_hoje`), e **parar ao primeiro sinal de bloqueio** (401/403/429, HTTP ≠ 200, JSON diferente):
   `ColetaInterrompida` — nunca contornar, nunca insistir. Rede que oscila: UMA nova tentativa depois de 45 s.
-* **Só local:** `data/mercado/nota_parana/` (`ofertas.parquet`, `coletas.csv`) está no `.gitignore`; a aba só aparece se esse
-  arquivo existe, então a nuvem não a mostra. Agendar: `schtasks` no próprio `.bat` (não foi agendado).
+* **A foto vai ao Git (decisão do usuário em 05/10/2026):** `data/mercado/nota_parana/` (`ofertas.parquet`, `coletas.csv`) é
+  versionada para a aba aparecer na demonstração da nuvem. **A coleta continua local** (nada coleta na nuvem): para atualizar,
+  rode `Coletar Menor Preco.bat` e depois commit + push dos dois arquivos. A aba só aparece se `ofertas.parquet` existe. Os
+  tempos "há 6 min" são contados a partir do momento da coleta (`_quando(dt, ref)`), não de agora. Agendar: `schtasks` no
+  próprio `.bat` (não foi agendado). **Ainda falta o aval do estado** (e-mail ao suporte do Nota Paraná): hoje é um teste.
 * **Paginação:** a coleta guarda `pagina` por oferta e informa quantos postos só vieram da 2ª página em diante
   (`extras_de_paginacao`). Em 05/10 foram 1 (diesel, total 56 > 50).
 

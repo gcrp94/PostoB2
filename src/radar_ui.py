@@ -11,9 +11,9 @@ Duas situações entre as unidades de Guarapuava:
   o dono informar o preço do próprio posto, para ver onde ele ficaria. (Com a planilha
   do B2, o preço próprio vem do "preço médio" diário, sem digitar.)
 
-Quando existe coleta local do Menor Preço (`coletar_nota_parana.py`), a tela ganha uma
-segunda aba com o preço da NOTA FISCAL, hoje, de todos os postos da cidade. Sem coleta
-(na nuvem, por exemplo), a aba não aparece.
+Quando existe coleta do Menor Preço (`coletar_nota_parana.py`; a foto mais recente vai
+junto com o painel), a tela ganha uma segunda aba com o preço da NOTA FISCAL de todos os
+postos da cidade. Sem coleta, a aba não aparece.
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def pagina():
     if of is None or of.empty:
         _aba_anp()                      # na nuvem (e antes da 1ª coleta) só existe a ANP
         return
-    aba_anp, aba_np = st.tabs(["📊 ANP · semanal", "⛽ Menor Preço · hoje (teste local)"])
+    aba_anp, aba_np = st.tabs(["📊 ANP · semanal", "⛽ Menor Preço · nota fiscal (teste)"])
     with aba_anp:
         _aba_anp()
     with aba_np:
@@ -224,13 +224,15 @@ def _aba_anp():
 """)
 
 
-# ------------------------------------------------- aba Menor Preço (teste local) ---
+# ------------------------------------------------- aba Menor Preço (nota fiscal, em teste) ---
 UNIDADES_NP = [n for n in mercado.ORDEM_B2 if n != "B2 Candói"]
 CNPJ_DA_UNIDADE = {nome: cnpj for cnpj, nome in mercado.NOMES_B2.items()}
 
 
-def _quando(dt) -> str:
-    minutos = int((nota_parana.agora_brt() - pd.Timestamp(dt)).total_seconds() // 60)
+def _quando(dt, ref=None) -> str:
+    """"há 6 min" contado a partir de `ref` (o momento da coleta; sem `ref`, a hora de agora). Assim uma foto publicada
+    continua dizendo "há 6 min" em relação à coleta, e não "há 2 dias" em relação a quem abre depois."""
+    minutos = int(((pd.Timestamp(ref) if ref is not None else nota_parana.agora_brt()) - pd.Timestamp(dt)).total_seconds() // 60)
     if minutos < 1:
         return "agora"
     if minutos < 60:
@@ -258,8 +260,11 @@ def _nome_np(linha) -> str:
 
 def _aba_menor_preco(of: pd.DataFrame):
     est = nota_parana.estado(of)
+    ref = pd.Timestamp(of["coletado_em"].max())                      # o momento da coleta mais recente
+    _q = lambda dt: _quando(dt, ref)                                 # noqa: E731
     ui.md('<div class="secao-sub">O que a bomba cobrou de verdade: o preço sai da <b>nota fiscal (NFC-e)</b> e chega ao app '
-          "Menor Preço do Paraná em minutos. Teste local: a coleta roda no seu computador, uma vez por dia.</div>")
+          f"Menor Preço do Paraná em minutos. <b>Foto da coleta de {ref:%d/%m às %H:%M}</b> · em teste: a coleta é feita "
+          "uma vez por dia e a última foto é a que aparece aqui.</div>")
     if est["interrompida"]:
         st.warning(f"A última tentativa de coleta foi interrompida: {est['interrompida']['mensagem']}")
 
@@ -277,7 +282,7 @@ def _aba_menor_preco(of: pd.DataFrame):
     ui.grade_kpis([
         ui.kpi("Média da cidade", format_brl(r["media"]), f"mediana {format_brl(r['mediana'])} · "
                f"de {format_brl(r['minimo'])} a {format_brl(r['maximo'])}", "🏙️", "destaque"),
-        ui.kpi("Mais barato agora", format_brl(barato["preco"]), f"{_nome_np(barato)} · {_quando(barato['datahora'])}", "🥇"),
+        ui.kpi("Mais barato", format_brl(barato["preco"]), f"{_nome_np(barato)} · {_q(barato['datahora'])}", "🥇"),
         ui.kpi("Postos com nota", f"{r['n']}", "nas últimas 48 h" + (
             f" · {int(conf['achado'].sum())} dos {len(conf)} cadastrados na ANP já apareceram" if len(conf) else ""), "📍"),
         ui.kpi("Última coleta", f"{est['ultima']:%d/%m %H:%M}" if est["ultima"] is not None else "—",
@@ -294,11 +299,11 @@ def _aba_menor_preco(of: pd.DataFrame):
         pesquisa = f"{format_brl(a['preco'])} · {a['data']:%d/%m}" if a is not None else "não pesquisa"
         if b:
             linhas.append([f"<b>{nome}</b>", format_brl(b["preco"]), _centavos(b["preco"] - r["media"]),
-                           f"{b['posicao']}º de {r['n']}", _quando(b["datahora"]), pesquisa])
+                           f"{b['posicao']}º de {r['n']}", _q(b["datahora"]), pesquisa])
         else:
             linhas.append([f"<b>{nome}</b>", "—", "—", "—", "sem nota nas últimas 48 h", pesquisa])
     with st.container(border=True):
-        ui.bloco_titulo("O B2 agora", f"{produto} · preço da última nota de cada unidade, contra a cidade e contra a pesquisa da ANP",
+        ui.bloco_titulo("O B2 contra a cidade", f"{produto} · preço da última nota de cada unidade, contra a cidade e contra a pesquisa da ANP",
                         pergunta="Onde estamos e o que o cliente está pagando?")
         ui.md(ui.tabela_html([("Unidade", False), ("Preço na nota", True), ("vs média da cidade", True), ("Posição", True),
                               ("Última nota", True), ("ANP (pesquisador)", True)], linhas))
@@ -314,13 +319,13 @@ def _aba_menor_preco(of: pd.DataFrame):
                         pergunta="Quem está ao redor de cada unidade?")
         st.plotly_chart(charts.radar_mapa(f, nomes), width="stretch", config={**charts.CFG, "scrollZoom": True})
     with st.container(border=True):
-        ui.bloco_titulo("Ranking agora", f"{produto} · do mais barato ao mais caro", pergunta="Quem cobra quanto?")
+        ui.bloco_titulo("Ranking de preços", f"{produto} · do mais barato ao mais caro", pergunta="Quem cobra quanto?")
         ordenado = f.assign(_nome=nomes).sort_values(["preco", "datahora"])
         tabela = []
         for _, l in ordenado.iterrows():
             nome_l = f"<b>{l['_nome']}</b>" if l["unidade_b2"] else ui.esc(l["_nome"])
             tabela.append([nome_l, ui.esc(_bandeira_np(l["razao"], l["fantasia"])), format_brl(l["preco"]),
-                           _centavos(l["preco"] - r["media"]), _quando(l["datahora"])])
+                           _centavos(l["preco"] - r["media"]), _q(l["datahora"])])
         ui.md('<div style="max-height:420px;overflow-y:auto">' + ui.tabela_html(
             [("Posto", False), ("Bandeira", False), ("Preço", True), ("vs média", True), ("Última nota", True)], tabela) + "</div>")
 
@@ -371,8 +376,8 @@ def _aba_menor_preco(of: pd.DataFrame):
   com pausa de 8 a 20 segundos entre elas. Uma vez por mês faz também a **varredura da cidade em {len(nota_parana.CENTROS)} pontos**
   (uns 15 minutos), para achar posto novo na periferia. O acesso se identifica com clareza; se o servidor negar ou mudar, a
   coleta **para** e anota — não insiste.
-* **É teste local:** os dados ficam só neste computador (`data/mercado/nota_parana/`, fora do Git) e esta aba não aparece na nuvem.
-  Antes de virar produto, falta o aval do estado (e-mail ao suporte do Nota Paraná).
+* **É um teste:** a coleta é feita no computador do B2 Gestão e a foto mais recente é publicada junto com o painel (por isso a
+  data da coleta aparece no topo). Antes de virar produto, falta o aval do estado (e-mail ao suporte do Nota Paraná).
 * **Limites:** o app não mostra CNPJ (o B2 é reconhecido pelo endereço); a posição no mapa é aproximada; o nome do combustível
   é o que o posto escreveu na nota (a V-Power, por exemplo, é lida como aditivada); só aparece quem vendeu nas últimas 48 h.
 """)

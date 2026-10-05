@@ -28,5 +28,6 @@ Abrir Apresentacao.bat
 # Dados brutos de mercado (ANP) — grandes e públicos; o painel usa só o Parquet filtrado
 data/mercado/bruto/
 
-# Menor Preço (Nota Paraná): coleta local de teste, nunca vai ao repositório
-data/mercado/nota_parana/
+# Menor Preço (Nota Paraná): a coleta é feita localmente e a ÚLTIMA FOTO (ofertas.parquet + coletas.csv) é versionada
+# para a demonstração na nuvem. Sem arquivo temporário nem lixo:
+data/mercado/nota_parana/*.tmp
