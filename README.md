@@ -35,6 +35,7 @@ Claude, use o **[RESUMO_PARA_CLAUDE.md](RESUMO_PARA_CLAUDE.md)**.
 | **`Atualizar Dados.bat`** | Depois de pôr planilhas novas nas pastas: monta a base e roda o motor de alertas. |
 | **`Gerar Dados Simulados.bat`** | Volta ao cenário original da demonstração. **Sobrescreve as planilhas simuladas — não rode com dados reais.** |
 | **`Abrir Apresentacao.bat`** | Abre a apresentação comercial em HTML (ver seção 11). |
+| **`Iniciar WhatsApp.bat`** | *Teste, chip dedicado.* Liga o assistente no WhatsApp (sessão logada; 1ª vez mostra o QR em `http://127.0.0.1:8531/`). Só responde a números autorizados (`python whatsapp_assistente.py --autorizar 42999999999`) e só com dados simulados. Conexão não oficial: a Meta pode limitar o número. |
 | **`Coletar Menor Preco.bat`** | *Teste local.* Coleta o preço das notas fiscais (Menor Preço do Paraná) de todos os postos de Guarapuava, com pausas, no máximo uma vez por dia. Alimenta a 2ª aba da tela 📡 Radar de Mercado. Depois de coletar, faça commit e push de `data/mercado/nota_parana/` para a nuvem mostrar a foto nova. |
 
 **Acesso de demonstração:** a tela de login tem botões de acesso rápido

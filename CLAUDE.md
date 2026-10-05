@@ -57,6 +57,7 @@ src/
   notificacoes.py   ntfy / Pushover / Telegram / console (alertas automáticos).
   assistente.py     B2 Assistente: entende a pergunta e monta a resposta.
   assistente_telegram.py / assistente_ntfy.py   os transportes do celular.
+  assistente_whatsapp.py   WhatsApp por sessão logada (TESTE, chip dedicado; whatsapp_assistente.py).
   assistente_ui.py  tela 💬 B2 Assistente e os ouvintes (um por processo).
   assistente_agenda.py  disparos automáticos (horário, chegada, cobrança).
   mercado.py / radar_ui.py   Radar de Mercado: preços PÚBLICOS da ANP (ver seção abaixo).
@@ -158,14 +159,32 @@ complicado e pediu algo mais fácil "que permita interação".
 * `config_assistente.local.json` (fora do Git) guarda token e conversas do
   Telegram e o tópico do ntfy. Alertas automáticos pelo robô: `canal =
   "telegram"` no `config_alertas.toml` (`notificacoes.telegram_destinos`).
-* **WhatsApp ficou de fora de propósito:** só pela API oficial da Meta
-  (empresa verificada, modelos aprovados, cobrança) ou intermediário pago.
-  É troca de transporte para a versão contratada — o cérebro é o mesmo.
+* **WhatsApp:** a API oficial da Meta (empresa verificada, modelos aprovados, cobrança) ou intermediário pago é o caminho
+  de PRODUÇÃO — só o transporte muda, o cérebro é o mesmo. Para TESTE existe a sessão logada (seção abaixo).
 * O painel ficou fora do ar por um erro de sintaxe no `assistente.py` da
   primeira versão (o `app.py` importa o módulo). Os testes pegariam: rode
   `python -m pytest` antes de apresentar.
 
 ---
+
+## B2 Assistente no WhatsApp — sessão logada, TESTE (05/10/2026)
+
+Pedido do usuário: usar um chip de WhatsApp Business gratuito, logado por sessão, para conversar com o assistente pelo
+WhatsApp em vez do Telegram ("fica mais na mão"). `src/assistente_whatsapp.py`, `whatsapp_assistente.py`,
+`Iniciar WhatsApp.bat`, `tests/test_assistente_whatsapp.py`, `requirements-whatsapp.txt` (fora do requirements da nuvem).
+
+* **Como liga:** biblioteca `neonize` 0.5.2 (Python sobre o *whatsmeow*, sem Node). O chip vira **aparelho vinculado**
+  (QR em `http://127.0.0.1:8531/`, só localhost). Sessão em `sessao_whatsapp/b2.db`; `LoggedOut` = o celular desconectou:
+  apagar a pasta e parear de novo. Sessão vinculada expira se o celular do chip ficar ~14 dias sem abrir o WhatsApp.
+* **NÃO é oficial: risco de a Meta limitar/banir o número.** Por isso: chip DEDICADO, só responde (nunca inicia, nunca em
+  massa), pausa de 1–2,5 s, máx. 8 mensagens/min por pessoa, texto simples. **Nunca com dado real** nem com o número do negócio.
+* **Segurança (testada):** só responde a quem está em `config_whatsapp.local.json` (`--autorizar NUMERO`); estranho, grupo e
+  mensagem própria são ignorados em silêncio (log com número mascarado). Aceita o 9º dígito dos dois jeitos e o ID
+  alternativo (LID) do remetente. Só com `data/SIMULADO.txt`, como o Telegram. `sessao_whatsapp/` e o config estão no
+  `.gitignore`: **a sessão dá acesso à conta, nunca versionar**.
+* **Diferenças do Telegram:** sem botões (as sugestões viram lista numerada; "2" executa a 2ª da última resposta), sem
+  teclado fixo, sem grupos por enquanto, processo à parte do painel (não usa streamlit). Disparos programados
+  (`assistente_agenda`) e alertas automáticos ainda NÃO usam este canal.
 
 ## Controle de fraudes, reunião e disparos (30/09/2026)
 

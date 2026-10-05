@@ -1,0 +1,3 @@
+# Só para o teste do assistente no WhatsApp (sessão logada, NÃO oficial), rodando no notebook.
+# A nuvem (Streamlit) não usa e não deve instalar: fica fora do requirements.txt.
+neonize==0.5.2
