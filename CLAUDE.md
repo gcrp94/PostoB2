@@ -119,7 +119,12 @@ mente ("−232%"). Mesma lição do Painel de Finanças.
   só espelha, via `on_change` — clicar na aba marcada (que o Streamlit
   desmarca) não perde a escolha, e os botões "Abrir →" da Central escrevem
   direto em `aba_<posto>`;
-* editar `src/` exige reiniciar o servidor.
+* editar `src/` exige reiniciar o servidor — **na nuvem isso se resolve sozinho** desde 06/10/2026: o Streamlit Cloud troca
+  os arquivos mas mantém o processo, e o `app.py` novo quebrava com `AttributeError: module 'src.analytics' has no attribute
+  ...` (o app ficou fora do ar depois do push `c6d22f5`). O topo do `app.py` guarda a data mais nova dos `src/*.py`
+  (`ESTAMPA_SRC`, em `sys._b2_estampa_src`) e, quando ela muda, descarta os módulos `src.*` antes de importar; a mesma
+  estampa entra na chave do `carregar` (cache de dados). O `assistente_ui.ouvintes()` já troca o `Controle` antigo. Foi
+  reproduzido e curado num servidor local (versão antiga em memória + arquivos novos por cima, `fileWatcherType none`).
 
 **Gráficos:** rótulo de valor ao lado de marca colide quando os números se
 aproximam — no gráfico "Onde a margem caiu?" os valores vão numa coluna à

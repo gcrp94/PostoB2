@@ -24,6 +24,15 @@ RAIZ = Path(__file__).resolve().parent
 st.set_page_config(page_title="B2 Gestão — Rede B2 Postos", page_icon=str(RAIZ / "assets" / "favicon.png"),
                    layout="wide", initial_sidebar_state="auto")   # "auto": recolhida no celular
 
+# Atualização na nuvem: o Streamlit Cloud troca os arquivos mas mantém o processo vivo, e os módulos `src.*` da versão
+# anterior ficam na memória — o app.py novo quebrava com "AttributeError: ... has no attribute" (06/10/2026). Quando algum
+# src/*.py mudou (ou na 1ª rodada deste arquivo), os módulos são descartados e reimportados já da versão nova.
+ESTAMPA_SRC = max((p.stat().st_mtime_ns for p in (RAIZ / "src").glob("*.py")), default=0)
+if getattr(sys, "_b2_estampa_src", None) != ESTAMPA_SRC:
+    for _nome in [n for n in sys.modules if n == "src" or n.startswith("src.")]:
+        del sys.modules[_nome]
+    sys._b2_estampa_src = ESTAMPA_SRC
+
 from src import alertas as al  # noqa: E402
 from src import analytics as an  # noqa: E402
 from src import armazenamento as arm  # noqa: E402
@@ -77,7 +86,7 @@ if not (base.PASTA_BASE / "movimento.parquet").exists():
                "das planilhas. Para a apresentação, o **Gerar Dados Simulados.bat** cria tudo.")
     st.stop()
 
-D = carregar((assistente_ui.assinatura_dados(), descontos.assinatura()), CUSTO)
+D = carregar((assistente_ui.assinatura_dados(), descontos.assinatura(), ESTAMPA_SRC), CUSTO)
 DF: pd.DataFrame = D["df"]
 POSTOS: list[str] = D["ordem"]
 ALERTAS: list[al.Alerta] = D["alertas"]
