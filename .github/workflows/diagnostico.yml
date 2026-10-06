@@ -1,0 +1,56 @@
+# TEMPORÁRIO (06/10/2026) — diagnóstico da falha dos testes no Actions.
+# Roda os mesmos passos do atualizar-base.yml (instalar, montar a base, pytest), mas NÃO manda alerta, NÃO publica nada
+# e só LÊ o repositório. O resultado dos testes aparece como anotações do job (legíveis sem login pela API do GitHub).
+# Apagar este arquivo quando o erro for corrigido.
+
+name: Diagnóstico dos testes
+
+on:
+  push:
+    paths:
+      - ".github/workflows/diagnostico.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar
+        run: pip install -r requirements.txt pytest
+
+      - name: Montar a base
+        run: python gerar_base.py
+
+      - name: Testes (resultado vira anotação)
+        run: |
+          python --version
+          python -c "import pandas, numpy, pyarrow, plotly, streamlit; print('pandas', pandas.__version__, '| numpy', numpy.__version__, '| pyarrow', pyarrow.__version__, '| plotly', plotly.__version__, '| streamlit', streamlit.__version__)"
+          date
+          set +e
+          python -m pytest -q --tb=short -rf -p no:cacheprovider > pytest.log 2>&1
+          codigo=$?
+          set -e
+          python - <<'PY'
+          import pathlib
+          texto = pathlib.Path("pytest.log").read_text(encoding="utf-8", errors="replace")
+          marca = texto.find("FAILURES")
+          trecho = texto[marca:] if marca >= 0 else texto
+          trecho = trecho[-14000:]
+          def esc(s):
+              return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+          pedacos = [trecho[i:i + 3500] for i in range(0, len(trecho), 3500)] or ["(pytest sem saída)"]
+          for n, p in enumerate(pedacos, 1):
+              print(f"::error title=pytest {n}/{len(pedacos)}::{esc(p)}")
+          print(texto[-1500:])
+          PY
+          exit $codigo
