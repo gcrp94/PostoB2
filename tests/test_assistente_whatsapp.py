@@ -199,13 +199,19 @@ def test_aviso_de_estranho_nao_mostra_o_numero_inteiro():
 
 
 # ------------------------------------------------------------ página do QR ---
-def test_pagina_do_qr_mostra_qr_ou_conectado_e_escapa_o_erro():
+def test_pagina_do_qr_mostra_conectando_ou_conectado_e_escapa_o_erro():
+    """Sem o `segno` (a nuvem não instala o neonize, que o traz): só o desenho do QR o exige."""
     sem = wa.pagina_qr({"conectado": False, "qr": b""}, [])
-    com = wa.pagina_qr({"conectado": False, "qr": b"https://wa.me/settings/linked_devices#2@abc"}, [])
     ok = wa.pagina_qr({"conectado": True, "qr": b"x"}, [EU])
-    assert "Conectando" in sem and "<svg" in com and "Aparelhos conectados" in com
+    assert "Conectando" in sem
     assert "Conectado" in ok and "<svg" not in ok
     assert "&lt;script&gt;" in wa.pagina_qr({"erro": "<script>x</script>"}, [])
+
+
+def test_pagina_do_qr_desenha_o_qr():
+    pytest.importorskip("segno")
+    com = wa.pagina_qr({"conectado": False, "qr": b"https://wa.me/settings/linked_devices#2@abc"}, [])
+    assert "<svg" in com and "Aparelhos conectados" in com
 
 
 # --------------------------------------------- remetente por ID interno (LID) ---

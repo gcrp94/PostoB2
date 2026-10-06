@@ -388,11 +388,11 @@ class ServicoWhatsApp:
 # ------------------------------------------------------- página local do QR ---
 def pagina_qr(estado: dict, autorizados: list[str]) -> str:
     """HTML (atualiza sozinho) com o QR atual e a situação. Só é servida em 127.0.0.1."""
-    import segno
     if estado.get("conectado"):
         corpo = ('<p class="ok">✅ <b>Conectado.</b> Mande uma mensagem do seu WhatsApp pessoal para o número do robô '
                  f'(autorizados: {len(autorizados)}).</p>')
     elif estado.get("qr"):
+        import segno                                            # vem com o neonize; só o QR precisa dele
         svg = segno.make(estado["qr"]).svg_inline(scale=7, border=2)
         corpo = ("<p><b>Escaneie com o WhatsApp do chip do robô:</b><br>WhatsApp Business → ⋮ → <b>Aparelhos conectados</b> → "
                  f"<b>Conectar um aparelho</b>. O QR troca a cada ~20 s.</p><div class='qr'>{svg}</div>")

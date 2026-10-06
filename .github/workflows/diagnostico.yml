@@ -1,7 +1,7 @@
 # TEMPORÁRIO (06/10/2026) — diagnóstico da falha dos testes no Actions.
 # Roda os mesmos passos do atualizar-base.yml (instalar, montar a base, pytest), mas NÃO manda alerta, NÃO publica nada
 # e só LÊ o repositório. O resultado dos testes aparece como anotações do job (legíveis sem login pela API do GitHub).
-# Apagar este arquivo quando o erro for corrigido.
+# Apagar este arquivo quando o erro for corrigido. (Reexecutado com a correção do `segno` em 06/10/2026.)
 
 name: Diagnóstico dos testes
 
