@@ -1,4 +1,4 @@
 registrado_em;origem;usuario;posto;data;produto;campo;antes;depois;diferenca;impacto_rs;dias_depois;gravidade
-2026-09-22 16:48;Envio pelo painel;marcos.primavera;B2 Primavera;2026-09-03;Gasolina Comum;Vendas;6066.0000;5366.0000;-700.0000;-4328.1000;18;critico
-2026-09-22 16:48;Envio pelo painel;marcos.primavera;B2 Primavera;2026-09-04;Gasolina Comum;Vendas;6456.0000;5956.0000;-500.0000;-3094.0000;17;critico
-2026-09-27 07:31;Envio pelo painel;carlos.bonsucesso;B2 Bonsucesso;2026-09-25;Etanol;Vendas;3769.0000;3809.0000;40.0000;179.4400;0;normal
+2026-09-22 09:03;Envio pelo painel;marcos.primavera;B2 Primavera;2026-09-03;Gasolina Comum;Vendas;6066.0000;5366.0000;-700.0000;-4328.1000;18;critico
+2026-09-22 09:03;Envio pelo painel;marcos.primavera;B2 Primavera;2026-09-04;Gasolina Comum;Vendas;6456.0000;5956.0000;-500.0000;-3094.0000;17;critico
+2026-09-27 07:47;Envio pelo painel;carlos.bonsucesso;B2 Bonsucesso;2026-09-25;Etanol;Vendas;3769.0000;3809.0000;40.0000;179.4400;0;normal

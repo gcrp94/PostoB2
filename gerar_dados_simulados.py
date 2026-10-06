@@ -71,10 +71,10 @@ PASTA_DADOS = RAIZ / "data"
 PASTA_MODELO = RAIZ / "modelo"
 
 INICIO = date(2025, 10, 1)
-FIM = date(2026, 9, 27)          # "ontem", na data da apresentação
-# A B2 Primavera parou de enviar em 25/09: a planilha dela vai só até o dia 24.
-# É a situação que a tela de Atualizações denuncia ("3 dias sem enviar").
-FIM_POSTO = {"B2 Primavera": date(2026, 9, 24)}
+FIM = date(2026, 9, 30)          # setembro FECHADO: o mês inteiro, para o ponto de equilíbrio e as comparações
+# A B2 Primavera continua 3 dias atrás dos outros: a planilha dela vai só até 27/09.
+# É a situação que a tela de Atualizações denuncia ("3 dias sem enviar") e que a cobrança de planilha usa.
+FIM_POSTO = {"B2 Primavera": date(2026, 9, 27)}
 
 # Quem envia a planilha de cada posto, e a que horas costuma enviar.
 ENVIOS = {
@@ -180,7 +180,7 @@ INICIO_PERDA_PRIMAVERA = date(2026, 8, 8)
 DIESEL_SEGURADO_BONSUCESSO = date(2026, 9, 15)       # não repassou o aumento
 OBRAS_INDIO = date(2026, 9, 8)
 # (data a partir da qual a entrega atrasa, litros da carga parcial que chegou)
-ATRASO_ENTREGA = {("B2 Candói", D): (date(2026, 9, 21), 30_000)}
+ATRASO_ENTREGA = {("B2 Candói", D): (date(2026, 9, 22), 40_000)}
 
 # Controle de fraudes — o que a 🛡️ Auditoria acha na demonstração.
 # Primavera: venda de Gasolina Comum de dias antigos baixada DEPOIS de enviada,
@@ -659,10 +659,24 @@ def semear_envios() -> list[list]:
     return linhas
 
 
+def salvar_descontos():
+    """O desconto do boleto de cada distribuidora (R$/L): a diferença entre o preço PLANILHA e o preço SISTEMA.
+
+    A Sul cobra mais caro na distribuidora (+R$ 0,015/L) e compensa com o maior desconto; o diesel da Alfa tem desconto
+    próprio. É dado simulado: os valores reais vêm dos boletos.
+    """
+    from src import descontos
+    descontos.gravar(descontos.pd.DataFrame(
+        [("Distribuidora Alfa", descontos.TODOS, 0.06), ("Distribuidora Alfa", "Diesel S10", 0.08),
+         ("Distribuidora Sul", descontos.TODOS, 0.09), ("Distribuidora Paraná", descontos.TODOS, 0.05)],
+        columns=descontos.COLUNAS))
+
+
 def main():
     print("Gerando 12 meses de planilhas simuladas da rede B2 Postos...")
     salvar_cadastro()
     salvar_modelo()
+    salvar_descontos()
     # A base anterior sai: comparada com a nova, viraria alteração na auditoria.
     import shutil
     shutil.rmtree(PASTA_DADOS / "base", ignore_errors=True)

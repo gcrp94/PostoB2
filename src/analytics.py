@@ -36,9 +36,28 @@ ALERTA_PERDA = 0.4
 
 
 # ------------------------------------------------------------------ base ---
-def preparar(mov: pd.DataFrame) -> pd.DataFrame:
+MODOS_CUSTO = {"planilha": "Preço planilha", "sistema": "Preço sistema"}
+
+
+def preparar(mov: pd.DataFrame, compras: pd.DataFrame | None = None, descontos: pd.DataFrame | None = None,
+             custo: str = "planilha") -> pd.DataFrame:
+    """As colunas de conta (faturamento, CMV, margem, perda).
+
+    `custo` escolhe QUAL custo entra na conta: "planilha" (o que o posto paga, já com o desconto do boleto — o
+    `custo_medio` enviado) ou "sistema" (o preço cheio da nota: planilha + desconto). Sem `compras` e `descontos` os dois
+    são iguais. `custo_planilha`, `desconto_litro` e `custo_sistema` ficam sempre na tabela, qualquer que seja o modo.
+    """
+    from src import descontos as desc
+
+    if custo not in MODOS_CUSTO:
+        raise ValueError(f"custo deve ser um de {list(MODOS_CUSTO)}")
     df = mov.copy()
     df["data"] = pd.to_datetime(df["data"]).dt.normalize()
+    df["custo_planilha"] = df["custo_medio"]
+    df["desconto_litro"] = desc.desconto_diario(df, compras, descontos)
+    df["custo_sistema"] = df["custo_planilha"] + df["desconto_litro"]
+    if custo == "sistema":
+        df["custo_medio"] = df["custo_sistema"]
     df["faturamento"] = df["vendas_l"] * df["preco_medio"]
     df["cmv"] = df["vendas_l"] * df["custo_medio"]
     df["margem"] = df["faturamento"] - df["cmv"]
@@ -330,6 +349,121 @@ def serie_resultado_mensal(df: pd.DataFrame, despesas: pd.DataFrame, posto=None)
     s["resultado"] = s["margem"] + s["perda_rs"] - s["despesas"]
     s["resultado_pct"] = s["resultado"] / s["faturamento"] * 100
     return s
+
+
+# ----------------------------------------------------- ponto de equilíbrio ---
+EQ_MESES_HISTORICO = 6          # quantos meses fechados entram na "média do posto"
+EQ_JANELA_RITMO = 7             # dias usados para projetar quando o equilíbrio chega
+EQ_MESES_CUSTO = 3              # mês em andamento: custo estimado = média dos últimos 3 meses fechados
+
+
+def _ganho_diario(dp: pd.DataFrame, inicio: date, fim: date) -> pd.Series:
+    """O que sobra por dia ANTES das despesas: margem bruta + perda/sobra do LMC (a mesma base do resultado).
+
+    Dia sem dado vale zero: o acumulado não "pula" um dia.
+    """
+    g = recorte(dp, inicio, fim)
+    por_dia = g.groupby("data")[["margem", "perda_rs"]].sum().sum(axis=1)
+    return por_dia.reindex(pd.date_range(inicio, fim, freq="D"), fill_value=0.0)
+
+
+def _despesas_do_mes(despesas: pd.DataFrame, posto: str, ano: int, mes: int) -> float:
+    if despesas.empty:
+        return 0.0
+    ultimo = calendar.monthrange(ano, mes)[1]
+    d = despesas_periodo(despesas, date(ano, mes, 1), date(ano, mes, ultimo), posto)
+    return float(d["valor"].sum()) if len(d) else 0.0
+
+
+def equilibrio_mes(df: pd.DataFrame, despesas: pd.DataFrame, posto: str, ano: int, mes: int) -> dict:
+    """O ponto de equilíbrio de UM posto em UM mês: o dia em que o acumulado cobriu os custos do mês.
+
+    * **Acumulado** = soma diária de (margem bruta + perda/sobra), do dia 1 em diante.
+    * **Custos do mês** = as despesas lançadas. Mês em andamento: o maior entre o já lançado e a média dos
+      últimos meses fechados (aluguel e folha podem ainda não ter caído) — e o resultado diz que é estimativa.
+    * **Dia do equilíbrio** = o 1º dia em que o acumulado ≥ custos. Dali em diante, cada real é resultado
+      (antes de IR/CSLL).
+    * Não atingiu: **quanto falta** em R$ e **em quantos dias**, no ritmo dos últimos 7 dias.
+    """
+    dp = df[df["posto"] == posto]
+    do_mes = dp[(dp["ano"] == ano) & (dp["mes"] == mes)]
+    if do_mes.empty:
+        return {"disponivel": False, "motivo": "sem vendas neste mês"}
+    per = periodo(dp, ano, mes)
+    dias_mes = calendar.monthrange(ano, mes)[1]
+
+    lancado = _despesas_do_mes(despesas, posto, ano, mes)
+    anteriores = [(a, m) for a, m in meses_disponiveis(dp) if (a, m) < (ano, mes)]
+    medias = [v for v in (_despesas_do_mes(despesas, posto, a, m) for a, m in anteriores[-EQ_MESES_CUSTO:]) if v > 0]
+    media_custos = float(np.mean(medias)) if medias else 0.0
+    custos = max(lancado, media_custos) if per.parcial else lancado
+    if custos <= 0:
+        return {"disponivel": False, "motivo": "sem despesas lançadas (aba DESPESAS)"}
+
+    ganho = _ganho_diario(dp, per.inicio, per.fim)
+    acum = ganho.cumsum()
+    atingiu = acum >= custos
+    dia_eq = int(atingiu.idxmax().day) if bool(atingiu.any()) else None
+    litros = float(recorte(dp, per.inicio, per.fim)["vendas_l"].sum())
+    total = float(acum.iloc[-1])
+    margem_litro = total / litros if litros else np.nan
+    litros_eq_mes = custos / margem_litro if margem_litro and margem_litro > 0 else None
+
+    out = {
+        "disponivel": True, "posto": posto, "ano": ano, "mes": mes, "parcial": per.parcial,
+        "dia_final": per.fim.day, "dias_mes": dias_mes,
+        "custos": custos, "custos_lancados": lancado, "custos_estimados": per.parcial and custos > lancado,
+        "acumulado": total, "pct_coberto": total / custos * 100,
+        "dia_equilibrio": dia_eq, "falta": max(custos - total, 0.0), "resultado_ate_agora": total - custos,
+        "ritmo": None, "dias_faltam": None, "previsto_dia": None, "fecha_no_mes": None,
+        "dias_acima": None, "litros": litros, "litros_equilibrio_mes": litros_eq_mes,
+        "litros_dia_equilibrio": litros_eq_mes / dias_mes if litros_eq_mes else None,
+        "litros_dia_atual": litros / per.dias if per.dias else None,
+        "margem_litro": margem_litro,
+        "curva": pd.Series(acum.values, index=acum.index.day, name="acumulado"),
+    }
+    if dia_eq is not None:
+        out["dias_acima"] = per.fim.day - dia_eq
+    elif per.parcial:
+        ritmo = float(ganho.tail(EQ_JANELA_RITMO).mean())
+        out["ritmo"] = ritmo
+        if ritmo > 0:
+            out["dias_faltam"] = int(np.ceil(out["falta"] / ritmo))
+            out["previsto_dia"] = per.fim.day + out["dias_faltam"]
+            out["fecha_no_mes"] = out["previsto_dia"] <= dias_mes
+        else:
+            out["fecha_no_mes"] = False
+    return out
+
+
+def equilibrio(df: pd.DataFrame, despesas: pd.DataFrame, posto: str, ano: int, mes: int) -> dict:
+    """`equilibrio_mes` + "como está em relação às médias": os últimos meses do próprio posto e a rede no mesmo mês."""
+    eq = equilibrio_mes(df, despesas, posto, ano, mes)
+    if not eq["disponivel"]:
+        return eq
+    dp = df[df["posto"] == posto]
+    anteriores = [(a, m) for a, m in meses_disponiveis(dp) if (a, m) < (ano, mes)][-EQ_MESES_HISTORICO:]
+    hist = [h for h in (equilibrio_mes(df, despesas, posto, a, m) for a, m in anteriores)
+            if h["disponivel"] and not h["parcial"]]
+    dias = [h["dia_equilibrio"] for h in hist if h["dia_equilibrio"] is not None]
+    curvas = [h["curva"] for h in hist]
+    eq["historico"] = {
+        "meses": [(h["ano"], h["mes"], h["dia_equilibrio"]) for h in hist], "n": len(hist), "n_cobriu": len(dias),
+        "media_dia": float(np.mean(dias)) if dias else None,
+        "curva_media": (pd.concat(curvas, axis=1).mean(axis=1).rename("media") if curvas else None),
+    }
+    rede = {}
+    for p in df["posto"].unique():
+        e = eq if p == posto else equilibrio_mes(df, despesas, p, ano, mes)
+        if not e["disponivel"]:
+            continue
+        dia = e["dia_equilibrio"] if e["dia_equilibrio"] is not None else e["previsto_dia"]
+        rede[p] = {"dia": dia, "cobriu": e["dia_equilibrio"] is not None,
+                   "previsto": e["dia_equilibrio"] is None and e["previsto_dia"] is not None,
+                   "pct_coberto": e["pct_coberto"]}
+    dias_rede = [v["dia"] for v in rede.values() if v["dia"] is not None]
+    eq["rede"] = {"postos": rede, "media_dia": float(np.mean(dias_rede)) if dias_rede else None}
+    return eq
 
 
 def perdas_lmc(df: pd.DataFrame, per: Periodo, posto: str) -> pd.DataFrame:

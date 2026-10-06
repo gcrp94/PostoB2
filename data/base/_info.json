@@ -1,6 +1,6 @@
 {
- "gerado_em": "2026-10-01T17:51:38",
- "ultima_data": "2026-09-27",
+ "gerado_em": "2026-10-06T10:04:11",
+ "ultima_data": "2026-09-30",
  "arquivos": [
   {
    "posto": "B2 Bonsucesso",
@@ -84,7 +84,7 @@
    "ano": 2026,
    "mes": 9,
    "arquivo": "B2 Bonsucesso 09-2026.xlsx",
-   "linhas": 108
+   "linhas": 120
   },
   {
    "posto": "B2 Candói",
@@ -168,7 +168,7 @@
    "ano": 2026,
    "mes": 9,
    "arquivo": "B2 Candói 09-2026.xlsx",
-   "linhas": 108
+   "linhas": 120
   },
   {
    "posto": "B2 Centro",
@@ -252,7 +252,7 @@
    "ano": 2026,
    "mes": 9,
    "arquivo": "B2 Centro 09-2026.xlsx",
-   "linhas": 108
+   "linhas": 120
   },
   {
    "posto": "B2 Índio",
@@ -336,7 +336,7 @@
    "ano": 2026,
    "mes": 9,
    "arquivo": "B2 Índio 09-2026.xlsx",
-   "linhas": 108
+   "linhas": 120
   },
   {
    "posto": "B2 Primavera",
@@ -420,9 +420,11 @@
    "ano": 2026,
    "mes": 9,
    "arquivo": "B2 Primavera 09-2026.xlsx",
-   "linhas": 96
+   "linhas": 108
   }
  ],
- "avisos": [],
+ "avisos": [
+  "Pasta 'mercado' não está no CADASTRO DOS POSTOS — ignorada."
+ ],
  "erros": []
 }

@@ -31,23 +31,10 @@ def logo_base64(nome: str = "logo_180.png") -> str:
     return base64.b64encode((ASSETS / nome).read_bytes()).decode()
 
 
-def visual() -> str:
-    """"novo" (padrão) ou "classico" — o botão do menu lateral troca. Só a
-    APARÊNCIA muda: os números e as telas são os mesmos nos dois."""
-    try:
-        return "classico" if st.session_state.get("visual") == "classico" else "novo"
-    except Exception:
-        return "classico"
-
-
-def novo() -> bool:
-    return visual() == "novo"
-
-
 def injetar_css():
+    """O visual único: `style.css` (a base) e `style_novo.css` por cima. O "painel antigo" saiu em 06/10/2026."""
     css = (ASSETS / "style.css").read_text(encoding="utf-8")
-    if novo():
-        css += "\n" + (ASSETS / "style_novo.css").read_text(encoding="utf-8")
+    css += "\n" + (ASSETS / "style_novo.css").read_text(encoding="utf-8")
     st.markdown(f"<style>{theme.css_root_variables()}\n{css}</style>", unsafe_allow_html=True)
 
 
@@ -66,8 +53,7 @@ def sem_emoji(texto: str) -> str:
 
 
 def topo(titulo: str, subtitulo: str = "", selo: str | None = None):
-    if novo():
-        titulo = sem_emoji(titulo)
+    titulo = sem_emoji(titulo)
     selo_html = f'<span class="selo">{selo}</span>' if selo else ""
     md(
         '<div class="topo-marca-movel">'
@@ -78,8 +64,7 @@ def topo(titulo: str, subtitulo: str = "", selo: str | None = None):
 
 
 def secao(titulo: str, sub: str = ""):
-    if novo():
-        titulo = sem_emoji(titulo)
+    titulo = sem_emoji(titulo)
     md(f'<div class="secao">{titulo}</div>' + (f'<div class="secao-sub">{sub}</div>' if sub else ""))
 
 
@@ -122,7 +107,7 @@ def delta_html(valor: float | None, sentido: str = "auto", tipo: str = "pct", su
 
 
 def sparkline(valores, cor: str = "currentColor", largura: int = 240, altura: int = 34) -> str:
-    """Tendência em miniatura (SVG inline) — só aparece no visual novo."""
+    """Tendência em miniatura (SVG inline)."""
     v = [float(x) for x in valores if x == x]
     if len(v) < 3:
         return ""
@@ -142,7 +127,7 @@ def sparkline(valores, cor: str = "currentColor", largura: int = 240, altura: in
 def kpi(rotulo: str, valor: str, sub: str = "", icone: str = "", classe: str = "", spark=None) -> str:
     ic = f'<div class="kpi-icone">{icone}</div>' if icone else ""
     sp = ""
-    if spark is not None and novo():
+    if spark is not None:
         cor = "#ff8a57" if "destaque" in classe else theme.COLORS["navy_ui"]
         sp = f'<div class="kpi-spark">{sparkline(spark, cor)}</div>'
     return (f'<div class="kpi {classe}">{ic}<div class="kpi-rotulo">{rotulo}</div>'
@@ -204,18 +189,12 @@ def tanques_html(estoque_df) -> str:
 # ---------------------------------------------------------------- alertas ---
 def alerta_html(a, mostrar_posto: bool = True) -> str:
     det = "<br>".join(esc(d) for d in a.detalhes)
-    if novo():
-        # Linha enxuta: o título e o resumo à mostra; o detalhe abre num toque.
-        posto = f'<span class="al-posto">{esc(a.posto.replace("B2 ", ""))}</span>' if mostrar_posto else ""
-        return (f'<details class="alerta-linha {a.nivel}"><summary><span class="al-ponto"></span>'
-                f'<span class="al-corpo"><span class="al-titulo">{esc(a.titulo.capitalize())}</span>'
-                f'<span class="al-resumo">{esc(a.resumo[0].upper() + a.resumo[1:])}</span></span>{posto}</summary>'
-                f'<div class="al-det">{det}</div></details>')
-    posto = f'<span class="a-posto">{esc(a.posto)}</span>' if mostrar_posto else ""
-    return (f'<div class="alerta {a.nivel}"><div class="a-topo">'
-            f'<span class="a-titulo">{a.icone} {esc(a.titulo)}</span>{posto}</div>'
-            f'<div class="a-resumo">{esc(a.resumo[0].upper() + a.resumo[1:])}</div>'
-            f'<div class="a-det">{det}</div></div>')
+    # Linha enxuta: o título e o resumo à mostra; o detalhe abre num toque.
+    posto = f'<span class="al-posto">{esc(a.posto.replace("B2 ", ""))}</span>' if mostrar_posto else ""
+    return (f'<details class="alerta-linha {a.nivel}"><summary><span class="al-ponto"></span>'
+            f'<span class="al-corpo"><span class="al-titulo">{esc(a.titulo.capitalize())}</span>'
+            f'<span class="al-resumo">{esc(a.resumo[0].upper() + a.resumo[1:])}</span></span>{posto}</summary>'
+            f'<div class="al-det">{det}</div></details>')
 
 
 # ---------------------------------------------------------------- tabelas ---

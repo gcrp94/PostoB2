@@ -162,6 +162,8 @@ def sinal_custo_informado(df: pd.DataFrame, compras: pd.DataFrame, inicio, fim, 
     c["data"] = pd.to_datetime(c["data"]).dt.normalize()
     c["produto"] = c["produto"].astype(str)
     custo_dia = c.groupby(["posto", "data", "produto"]).agg(litros=("litros", "sum"), valor=("valor", "sum"))
+    # O que o POSTO informou (planilha), não o modo do botão "preço planilha/sistema": o desconto do boleto não é erro dele.
+    col_custo = "custo_planilha" if "custo_planilha" in df.columns else "custo_medio"
     mov = df.assign(produto=df["produto"].astype(str)).sort_values("data")
     for (posto, produto), g in mov.groupby(["posto", "produto"]):
         if posto not in postos:
@@ -176,9 +178,9 @@ def sinal_custo_informado(df: pd.DataFrame, compras: pd.DataFrame, inicio, fim, 
             if chave not in custo_dia.index:
                 continue
             nota = custo_dia.loc[chave]
-            esperado = ((r["estoque_inicial"] * ant["custo_medio"] + nota["valor"])
+            esperado = ((r["estoque_inicial"] * ant[col_custo] + nota["valor"])
                         / (r["estoque_inicial"] + nota["litros"]))
-            difs.append(r["custo_medio"] - esperado)
+            difs.append(r[col_custo] - esperado)
         if len(difs) >= 2 and abs(np.mean(difs)) > DIF_CUSTO_MEDIO:
             saida.append(Sinal("atencao", "custo_medio", posto, "Custo médio informado fora do que as notas dão",
                                f"{produto}: em média {format_rs_litro(abs(np.mean(difs)), 3)} "
@@ -193,7 +195,7 @@ def sinal_vendas(df: pd.DataFrame, inicio, fim, postos) -> list[Sinal]:
     for posto, g in p.groupby("posto"):
         if posto not in postos or len(g) < 20:
             continue
-        abaixo = g[g["preco_medio"] < g["custo_medio"]]
+        abaixo = g[g["preco_medio"] < g["custo_planilha" if "custo_planilha" in g.columns else "custo_medio"]]
         if len(abaixo):
             saida.append(Sinal("atencao", "abaixo_custo", posto, "Venda abaixo do custo",
                                f"{len(abaixo)} dia(s) com preço médio menor que o custo "

@@ -15,7 +15,8 @@ dado real: apagar as planilhas simuladas, o `SIMULADO.txt` e o
 
 ## Regras de ouro
 
-1. **Margem bruta, nunca "lucro".** Faturamento − litros × custo médio. É o
+1. **Margem bruta, nunca "lucro" — e, para o B2, "LB".** (06/10/2026: o Diego é técnico e fala em **LB = Lucro Bruto**; nas telas
+   do painel os rótulos dizem "LB · Lucro Bruto" (cartões principais), "LB/L", "LB %". Alertas e respostas do assistente ainda dizem "margem".) Faturamento − litros × custo médio. É o
    que a planilha sustenta sozinha e é o número principal de todas as telas.
    O resultado depois das despesas só aparece em *Compras e Custos*, com esse
    nome, e é antes de IR/CSLL. Pedido explícito do usuário.
@@ -66,6 +67,7 @@ coletar_nota_parana.py  Roda a coleta (varre Guarapuava em grade, com pausas); `
   auditoria.py      trilha do que mudou em dado já recebido.
   antifraude.py     sinais de fraude (tela 🛡️ Auditoria).
   reuniao.py        placar, metas e pauta da reunião de gerentes.
+  equilibrio_ui.py  o ponto de equilíbrio do mês, no topo do Resumo do posto (ver seção abaixo).
   auth.py           Usuários, perfis, PBKDF2, modo demonstração.
   charts.py         Plotly: gramática única, números em pt-BR via Python.
   ui.py             Cartões, tanques, tabelas, alertas em HTML.
@@ -193,6 +195,12 @@ WhatsApp em vez do Telegram ("fica mais na mão"). `src/assistente_whatsapp.py`,
 * **Dois aparelhos logados = resposta em dobro.** Deixe UM respondendo: o outro com `--mudo` (ou `B2_WHATSAPP_MUDO=1`: loga,
   escuta, não responde). Em servidor, os autorizados vêm de `B2_WHATSAPP_AUTORIZADOS` (só números 55+DDD, 12–13 dígitos).
   `--qr-terminal` desenha o QR no terminal (parear por SSH).
+* **PLANO GUARDADO — fazer só DEPOIS da demonstração ao Diego (decisão do usuário, 05/10/2026):** o robô do WhatsApp na
+  nuvem DENTRO do painel (que já fica acordado pelo cron de 4 h), com a sessão em **Postgres gratuito** (Supabase Session
+  pooler ou Neon direto, `sslmode=require`; o `neonize` aceita `postgres://…`), por `B2_WHATSAPP_DB`/`B2_WHATSAPP_AUTORIZADOS`/
+  `B2_WHATSAPP_PIN` nos Secrets, QR numa aba do 💬 atrás de PIN, `neonize` no requirements + `libmagic1` no `packages.txt`,
+  e ignorar mensagens com > ~300 s. Sem VM e sem Actions (6 h/execução, 2.000 min/mês, termos, ban por IP). **Não dar push
+  que reinicie o painel antes da apresentação.** O kit `deploy/whatsapp/` (VM) ficou como alternativa recusada.
 * **Diferenças do Telegram:** sem botões (as sugestões viram lista numerada; "2" executa a 2ª da última resposta), sem
   teclado fixo, sem grupos por enquanto, processo à parte do painel (não usa streamlit). Disparos programados
   (`assistente_agenda`) e alertas automáticos ainda NÃO usam este canal.
@@ -233,28 +241,18 @@ para reunião com gerentes — **sem poluir o BI**.
 
 ---
 
-## Painel novo × Painel antigo (01/10/2026)
+## Visual único (06/10/2026) — o "painel antigo" foi removido
 
-Pedido do usuário: testar uma repaginação visual e poder alternar entre o
-visual antigo e o novo para aprovar.
+Era um botão "Painel antigo | Painel novo" (01/10/2026, para aprovação). O dono do projeto aprovou o novo e pediu para tirar o
+antigo: **saiu o seletor, `?visual=antigo`, `ui.visual()/ui.novo()`, `charts.NOVO` e todos os ramos `else` do visual clássico**.
+Hoje `ui.injetar_css()` aplica sempre `assets/style.css` (a base) + `assets/style_novo.css` por cima. `style.css` ainda tem regras
+que só o antigo usava (`.alerta`, `.a-topo`…): são inofensivas e podem ser podadas.
 
-* **Botão "Painel antigo | Painel novo"** no topo do menu lateral; também
-  `?visual=antigo` na URL. Padrão: novo. A escolha mora em
-  `st.session_state["visual"]` e `ui.novo()` responde.
-* **Só aparência.** O antigo é o `assets/style.css` intacto; o novo é o
-  `assets/style_novo.css` por CIMA dele (mesmas cores da marca e dos
-  combustíveis). Não há regra de negócio no visual.
-* O que o novo muda: ícones de traço único (Material) no lugar dos emojis do
-  menu e dos títulos; miniatura de tendência (30 dias) nos cartões
-  principais; Visão da Rede com 4 cartões grandes + 4 leves; hero da Central
-  em cartão claro; alertas em linhas que abrem (`<details>`) com o botão ao
-  lado; etiquetas nos alertas do posto; tabelas e gráficos mais leves
-  (dica escura, grade pontilhada, barras arredondadas).
-* **Armadilhas:** `charts.NOVO` é um módulo global ligado a cada rerun pelo
-  `app.py` — serve para a demonstração; se virar produto multiusuário, passe
-  o visual por parâmetro. O ícone do menu entra por `format_func` do
-  `st.radio` (`:material/nome:`); o VALOR do menu continua com o emoji, é ele
-  que o roteamento usa (`pagina.startswith("🎯")`).
+* O ícone do menu entra por `format_func` (`rotulo_menu`, `:material/nome:`); o VALOR do menu continua com o emoji, é ele que o
+  roteamento usa (`pagina.startswith("🎯")`).
+* **Menu do proprietário (06/10):** o **B2 Centro abre a lista** (`POSTO_EM_FOCO`, vira a tela inicial) com "(Em Construção)" em
+  laranja; os demais itens de **Painéis** levam "(construir)" (em itálico, para o CSS deixá-lo claro sobre o azul-escuro: o `:gray[]`
+  do Streamlit some). Os itens de **Gestão** não têm etiqueta. Para focar noutro posto, troque `POSTO_EM_FOCO`.
 
 ---
 
@@ -355,6 +353,67 @@ da tela 📡 (`radar_ui._aba_menor_preco`), testes `tests/test_nota_parana.py` (
   próprio `.bat` (não foi agendado). **Ainda falta o aval do estado** (e-mail ao suporte do Nota Paraná): hoje é um teste.
 * **Paginação:** a coleta guarda `pagina` por oferta e informa quantos postos só vieram da 2ª página em diante
   (`extras_de_paginacao`). Em 05/10 foram 1 (diesel, total 56 > 50).
+
+## Ponto de equilíbrio — o destaque pedido pelo dono (06/10/2026)
+
+Pedido do Diego na reunião de 05/10: ver o **dia em que o posto passou a cobrir todos os custos**, **quanto falta em R$ e em
+dias** quando ainda não cobriu, e **como isso está contra as médias**. `analytics.equilibrio` (a conta), `charts.equilibrio_curva` /
+`equilibrio_rede` (os gráficos), `equilibrio_ui.bloco` (o destaque no topo do **Resumo** de cada posto; começamos pelo B2 Centro),
+`tests/test_equilibrio.py` (14 testes com resposta conhecida).
+
+* **A conta:** acumulado diário de (margem bruta + perda/sobra do LMC) ≥ despesas do mês → o 1º dia em que isso vale é o dia do
+  equilíbrio. É a MESMA base do "Resultado depois das despesas" (antes de IR/CSLL). **Na tela é "resultado", não "lucro"** (regra 1);
+  o dono diz "lucro". Dia sem planilha vale zero.
+* **Mês em andamento:** se as despesas lançadas forem menores que a média dos 3 últimos meses fechados (aluguel/folha ainda não
+  caíram), os custos usam essa média e a tela diz "(estimativa)". Se não cobriu: quanto falta, o ritmo dos últimos 7 dias, em
+  quantos dias chega e se **fecha dentro do mês**. Mês fechado que não cobriu: diz quanto faltou.
+* **Comparações:** média do próprio posto nos últimos 6 meses FECHADOS e média da rede no mesmo mês (posto ainda sem cobrir entra
+  pela previsão, marcado "previsto"). Também: litros/dia para empatar contra o que vende.
+* **Visual (enxuto, 06/10):** UM cartão claro (`.eq`): selo de situação (✅/⏳/🔴 com palavra), o número grande ("Dia 19" ou o valor que falta) e a **régua do LB** (`_regua`): trilha de 0 até o LB acumulado com um traço nos custos — azul = o LB que cobre, laranja = o que passa ("+ R$ x"), listrado = o que falta ("faltam R$ x"); depois, uma linha de comparações. **Sem frases explicativas** (o dono é técnico). UM gráfico sem legenda; a comparação com a rede e o método (uma linha) ficam num `expander`.
+* **Pronto para o Linx:** só precisa de vendas+custo por dia e das despesas do mês (contas a pagar por categoria). Ideias seguintes em
+  `apresentacao/IDEIAS.md` (fora do Git): custo planilha × sistema (desconto do boleto), vendas por turno, conveniência × Menor Preço,
+  alertas a partir do log do Linx.
+
+## Botão "Preço planilha | Preço sistema" — o desconto do boleto (06/10/2026)
+
+Pedido do Diego (ideia nº 2 do `apresentacao/IDEIAS.md`): a distribuidora dá um **desconto no boleto**, então o que o posto paga
+(preço da PLANILHA) é menor que a nota cheia que o Linx registra (preço do SISTEMA). O seletor, **de bolinhas — (●) Preço planilha ( ) Preço sistema — numa linha abaixo das abas do posto** (e abaixo do título nas outras telas), escolhe qual
+custo entra em TODAS as contas. `src/descontos.py` (a tabela e a média ponderada), `analytics.preparar(mov, compras, descontos,
+custo)`, `tests/test_descontos.py` (13 testes).
+
+* **Planilha = padrão** e é o `custo_medio` enviado pelos postos (não mudou o contrato da planilha). **Sistema = planilha + desconto.**
+  `preparar` deixa SEMPRE as colunas `custo_planilha`, `desconto_litro` e `custo_sistema`; só o `custo_medio` (que alimenta
+  CMV, margem, perda, equilíbrio, alertas) muda com o modo. Sem tabela de descontos os dois preços são iguais.
+* **O desconto mora numa tabela de configuração**, `data/descontos_boleto.csv` (distribuidora; produto ou "Todos"; R$/L), e não na
+  planilha: é termo comercial que muda raramente e assim as planilhas já enviadas continuam valendo. Editor em ⚙️ Administração.
+  Para cada dia vale a **média ponderada pelos litros das compras dos últimos 30 dias** (sem compra na janela, o último conhecido;
+  antes da 1ª, o 1º). Na demonstração: Alfa 0,06 (diesel 0,08), Sul 0,09, Paraná 0,05 — **simulados** (`salvar_descontos` no gerador).
+* **O botão vive em `st.session_state["custo_modo"]`** e entra na chave do cache de `carregar(assinatura, custo)`: são duas bases
+  em cache. O `segmented_control` usa o mesmo truque do antigo seletor de visual (`_rad_custo` + `on_change`; a chave que vale, `custo_modo`, é a que o código escreve). É um `st.radio(horizontal=True)` num `st.container(key="botao_custo")` (o CSS `.st-key-botao_custo` deixa a bolinha marcada escura, como o Diego pediu). O
+  botão marcado já diz qual vale (sem banner nem legenda: o dono pediu menos texto).
+* **As conferências antifraude olham `custo_planilha`** (o que o POSTO informou): o desconto do boleto não é erro dele. Há teste
+  provando que os sinais são os mesmos nos dois modos. Compras e Custos mostra as notas no preço escolhido (`compras_no_preco`,
+  só para exibir) e um bloco "Desconto do boleto" com a margem por litro nos dois preços e quanto o desconto vale no período.
+* **NÃO seguem o botão** (usam o padrão planilha): o assistente do celular (Telegram/WhatsApp), os disparos programados e o
+  `motor_alertas.py`. Se o dono quiser o preço do sistema no celular, é preciso passar o modo por parâmetro.
+* **Nuvem:** o arquivo da tabela volta ao do repositório a cada reinício; para valer de vez, edite o CSV e envie ao GitHub.
+  **Com o Linx:** o custo cheio de cada nota substitui o "planilha + desconto" e a tabela vira conferência.
+
+## Dados simulados: setembro FECHADO (06/10/2026)
+
+Pedido do usuário para a demonstração ao Diego: o último mês completo (setembro) fechado nos postos, para o ponto de equilíbrio
+mostrar um mês inteiro. `gerar_dados_simulados.py`: `FIM = 30/09/2026`; **só a Primavera para em 27/09** (`FIM_POSTO`), de
+propósito — é a história do alerta "dados desatualizados" (`tests/test_painel.py:86`). Número de referência no B2 Centro, set/26:
+equilíbrio no **dia 19** (preço planilha) e no **dia 21** (preço sistema); custos R$ 203,9 mil; LB acumulado R$ 324 mil.
+
+* **Candói, diesel S10 (~1 dia de autonomia no fim):** a carga parcial atrasada chega a partir de **22/09**
+  (`ATRASO_ENTREGA`); `simular_com_historia` procura o tamanho da carga (cai em ~40 mil L). Com a data 24/09 a história SUMIA
+  (a carga cheia de 23/09 mantinha ≥ 4 dias): se mexer em `FIM` ou na data, confira o tanque do Candói (S10 ≈ 8%, alerta crítico).
+* O gerador também grava `data/descontos_boleto.csv` (descontos simulados, ver acima) e **apaga `data/alertas_enviados.csv`**: o
+  Actions recria o arquivo e manda os alertas outra vez ao Telegram na 1ª rodada depois de um novo cenário.
+* **Ciclo para trocar o cenário:** `python gerar_dados_simulados.py` → `python gerar_base.py` → `python -m pytest` (as 9 situações
+  plantadas têm teste) → commit/push (o push de `data/**/*.xlsx` dispara o Actions, que comita a base em `main`: depois,
+  `git pull --rebase`).
 
 ## Ideias para a fase 2 (conversadas, não feitas)
 

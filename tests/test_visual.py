@@ -37,13 +37,11 @@ def test_css_com_chaves_balanceadas(arquivo):
     assert css.count("{") == css.count("}")
 
 
-def test_visual_antigo_continua_gerando_o_html_de_antes(monkeypatch):
-    """Sem sessão do Streamlit o painel cai no clássico: nada de <details>."""
-    monkeypatch.setattr(ui, "novo", lambda: False)
-
+def test_alerta_e_sempre_a_linha_que_abre_e_o_painel_antigo_nao_existe_mais():
+    """O visual é um só (o "painel antigo" saiu em 06/10/2026): nada de cartão de alerta clássico."""
     class A:
         nivel, icone, titulo, posto, resumo, detalhes = "critico", "🔴", "ESTOQUE", "B2 Candói", "diesel", ["x"]
 
-    assert 'class="alerta critico"' in ui.alerta_html(A()) and "<details" not in ui.alerta_html(A())
-    monkeypatch.setattr(ui, "novo", lambda: True)
-    assert "<details" in ui.alerta_html(A())
+    html = ui.alerta_html(A())
+    assert "<details" in html and 'class="alerta critico"' not in html and "Candói" in html
+    assert not hasattr(ui, "novo") and not hasattr(ui, "visual")

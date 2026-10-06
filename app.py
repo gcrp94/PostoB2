@@ -28,19 +28,20 @@ from src import alertas as al  # noqa: E402
 from src import analytics as an  # noqa: E402
 from src import armazenamento as arm  # noqa: E402
 from src import assistente_ui  # noqa: E402
-from src import radar_ui  # noqa: E402
-from src import antifraude, auditoria, auth, base, charts, notificacoes, reuniao, theme, ui, validacao  # noqa: E402
+from src import equilibrio_ui, radar_ui  # noqa: E402
+from src import antifraude, auditoria, auth, base, charts, descontos, notificacoes, reuniao, theme, ui, validacao  # noqa: E402
 from src.formatting import (  # noqa: E402
     format_brl, format_brl_curto, format_decimal, format_int, format_litros, format_litros_curto, format_pct,
     format_pct_simples, format_rs_litro, nome_mes,
 )
 
-# Visual: "novo" por padrão; o botão do menu lateral (ou ?visual=antigo) volta ao clássico.
-if "visual" not in st.session_state:
-    st.session_state["visual"] = ("classico" if st.query_params.get("visual", "") in ("antigo", "classico")
-                                  else "novo")
-charts.NOVO = ui.novo()
-ui.injetar_css()
+ui.injetar_css()      # visual único (o "painel antigo" foi removido em 06/10/2026)
+
+# Botão "Preço planilha | Preço sistema" (menu lateral): qual custo do combustível entra em TODAS as contas.
+# Planilha = o que o posto paga, com o desconto do boleto (padrão); sistema = o preço cheio da nota (planilha + desconto).
+CUSTO = st.session_state.get("custo_modo", "planilha")
+if CUSTO not in an.MODOS_CUSTO:
+    CUSTO = "planilha"
 
 # O robô do celular (Telegram/ntfy) liga ANTES do login: basta o Abrir App.bat
 # abrir o navegador uma vez para ele começar a responder — o apresentador não
@@ -58,13 +59,14 @@ if usuario is None:
 
 # =============================================================== dados ======
 @st.cache_data(show_spinner="Carregando a base da rede…")
-def carregar(assinatura: tuple) -> dict:
+def carregar(assinatura: tuple, custo: str) -> dict:
     b = base.carregar()
-    df = an.preparar(b.movimento)
+    tabela = descontos.carregar()
+    df = an.preparar(b.movimento, b.compras, tabela, custo)
     ordem = [p for p in theme.POSTOS if p in set(b.postos["posto"])] + \
             [p for p in b.postos["posto"] if p not in theme.POSTOS]
     aud = auditoria.ler()
-    return {"df": df, "compras": b.compras, "despesas": b.despesas, "postos": b.postos.set_index("posto"),
+    return {"df": df, "compras": b.compras, "despesas": b.despesas, "descontos": tabela, "postos": b.postos.set_index("posto"),
             "tanques": b.tanques, "info": b.info, "ordem": ordem, "auditoria": aud,
             "envios": arm.ler_envios(), "alertas": al.gerar(df, b.tanques, ordem, auditoria=aud)}
 
@@ -75,7 +77,7 @@ if not (base.PASTA_BASE / "movimento.parquet").exists():
                "das planilhas. Para a apresentação, o **Gerar Dados Simulados.bat** cria tudo.")
     st.stop()
 
-D = carregar(assistente_ui.assinatura_dados())
+D = carregar((assistente_ui.assinatura_dados(), descontos.assinatura()), CUSTO)
 DF: pd.DataFrame = D["df"]
 POSTOS: list[str] = D["ordem"]
 ALERTAS: list[al.Alerta] = D["alertas"]
@@ -88,9 +90,7 @@ def grafico(fig):
 
 
 def tendencia(coluna: str, posto: str | None = None, dias: int = 30):
-    """Série diária dos últimos `dias` — a miniatura dos cartões do visual novo."""
-    if not ui.novo():
-        return None
+    """Série diária dos últimos `dias` — a miniatura dos cartões."""
     fim = an.ultima_data(DF, posto) if posto else ULTIMA
     inicio = fim - timedelta(days=dias - 1)
     if coluna == "estoque":
@@ -105,24 +105,27 @@ ICONES_MENU = {"🎯": "dashboard", "🏠": "monitoring", "📋": "groups", "⛽
                "💬": "smart_toy", "⚙": "settings"}
 
 
-def rotulo_menu(item: str) -> str:
-    """No visual novo, o emoji do menu vira ícone de traço único."""
-    if not ui.novo():
-        return item
+POSTO_EM_FOCO = "B2 Centro"      # o 1º a ser construído com os dados do Linx: vai ao topo do menu
+
+
+def rotulo_menu(item: str, etiquetas: bool = False) -> str:
+    """O emoji do menu vira ícone de traço único. `etiquetas`: o grupo Painéis marca o que ainda será construído."""
     icone = ICONES_MENU.get(item.split(" ", 1)[0].replace("️", ""))
-    return f":material/{icone}: {ui.sem_emoji(item)}" if icone else item
+    texto = f":material/{icone}: {ui.sem_emoji(item)}" if icone else item
+    if etiquetas:
+        # "(construir)" vai em itálico: o CSS do menu lateral o deixa claro e miúdo (o cinza do Streamlit some no fundo azul).
+        texto += " :orange[(Em Construção)]" if item == f"⛽ {POSTO_EM_FOCO}" else " *(construir)*"
+    return texto
 
 
 def grade_alertas(lista, prefixo: str, acao, mostrar_posto: bool = True):
     """Os cartões de alerta com o botão de ação. `acao(a)` devolve
-    (rótulo, função, argumentos) — rótulo None = sem botão. Visual antigo:
-    cartões em 2 colunas; novo: linhas que abrem, com o botão ao lado."""
-    cols = None if ui.novo() else st.columns(2)
+    (rótulo, função, argumentos) — rótulo None = sem botão. Linhas que abrem, com o botão ao lado."""
     for i, a in enumerate(lista):
         rotulo, funcao, args = acao(a)
         chave = f"{prefixo}_{i}_{a.chave}"
-        with (st.container() if cols is None else cols[i % 2]):
-            if ui.novo() and rotulo:
+        with st.container():
+            if rotulo:
                 c1, c2 = st.columns([5, 1.5], vertical_alignment="center")
                 with c1:
                     ui.md(ui.alerta_html(a, mostrar_posto))
@@ -130,8 +133,6 @@ def grade_alertas(lista, prefixo: str, acao, mostrar_posto: bool = True):
                     st.button(rotulo, key=chave, type="tertiary", on_click=funcao, args=args)
             else:
                 ui.md(ui.alerta_html(a, mostrar_posto))
-                if rotulo:
-                    st.button(rotulo, key=chave, type="tertiary", on_click=funcao, args=args)
 
 
 def acao_abrir_posto(a):
@@ -192,16 +193,36 @@ def seletor_periodo(df: pd.DataFrame, chave: str = "periodo") -> an.Periodo:
     return an.periodo(df, *escolha)
 
 
+def botao_custo():
+    """"(●) Preço planilha  ( ) Preço sistema": seletor de bolinhas, sem legenda. O que está marcado vale para TODA conta de
+    custo e LB do painel (margens, equilíbrio, perdas, alertas, notas de compra…)."""
+    def _mudou():
+        escolha = st.session_state.get("_rad_custo")
+        if escolha in an.MODOS_CUSTO:
+            st.session_state["custo_modo"] = escolha
+
+    st.session_state["_rad_custo"] = CUSTO
+    with st.container(key="botao_custo"):
+        st.radio("Custo do combustível", list(an.MODOS_CUSTO), key="_rad_custo", horizontal=True,
+                 format_func=lambda m: an.MODOS_CUSTO[m], on_change=_mudou, label_visibility="collapsed")
+
+
 def cabecalho(titulo: str, sub: str, com_periodo: bool = True, selo: str | None = None,
-              df: pd.DataFrame | None = None) -> an.Periodo | None:
+              df: pd.DataFrame | None = None, botao: bool = True) -> an.Periodo | None:
+    """O alto da tela. `botao`: o "Preço planilha | Preço sistema" (o posto o põe ao lado das abas, não aqui)."""
     if not com_periodo:
         ui.topo(titulo, sub, selo)
+        if botao:
+            botao_custo()
         return None
     c1, c2 = st.columns([3.2, 1], vertical_alignment="bottom")
     with c1:
         ui.topo(titulo, sub, selo)
     with c2:
-        return seletor_periodo(DF if df is None else df)
+        per = seletor_periodo(DF if df is None else df)
+    if botao:
+        botao_custo()
+    return per
 
 
 def quando_txt(momento) -> str:
@@ -226,19 +247,11 @@ def lateral():
         ui.md(f'<div class="lateral-usuario"><div class="ola">Olá, {ui.esc(usuario.nome)}</div>'
               f'<div class="perfil">{usuario.perfil_nome} · <b>{ui.esc(onde)}</b></div></div>')
 
-        def _mudou_visual():
-            escolha = st.session_state.get("_seg_visual")
-            if escolha:
-                st.session_state["visual"] = "classico" if escolha == "Painel antigo" else "novo"
-                st.query_params["visual"] = "antigo" if escolha == "Painel antigo" else "novo"
-
-        st.session_state["_seg_visual"] = "Painel novo" if ui.novo() else "Painel antigo"
-        st.segmented_control("Visual", ["Painel antigo", "Painel novo"], key="_seg_visual",
-                             on_change=_mudou_visual, label_visibility="collapsed")
-
         if usuario.ve_rede:
-            paineis = ["🎯 Central do Proprietário", "🏠 Visão da Rede", PAGINA_REUNIAO] + \
-                      [f"⛽ {p}" for p in POSTOS]
+            # O posto em foco (B2 Centro) abre a lista: é por ele que o painel está sendo construído com o Linx.
+            em_foco = [f"⛽ {p}" for p in POSTOS if p == POSTO_EM_FOCO]
+            paineis = em_foco + ["🎯 Central do Proprietário", "🏠 Visão da Rede", PAGINA_REUNIAO] + \
+                      [f"⛽ {p}" for p in POSTOS if p != POSTO_EM_FOCO]
             n_alertas = sum(a.nivel in ("critico", "atencao") for a in ALERTAS)
             gestao = ["📤 Alimentar dados", f"🔔 Alertas ({n_alertas})", PAGINA_AUDITORIA, PAGINA_RADAR, "📑 Atualizações",
                       "💬 B2 Assistente", "⚙️ Administração"]
@@ -261,7 +274,8 @@ def lateral():
                     st.session_state["menu_paineis"] = paineis[0]
             ui.md('<div class="lateral-rotulo">Painéis</div>')
             st.radio("Painéis", paineis, key="menu_paineis", label_visibility="collapsed",
-                     format_func=rotulo_menu, on_change=lambda: st.session_state.update(menu_gestao=None))
+                     format_func=lambda i: rotulo_menu(i, etiquetas=True),
+                     on_change=lambda: st.session_state.update(menu_gestao=None))
             ui.md('<div class="lateral-rotulo">Gestão</div>')
             st.radio("Gestão", gestao, key="menu_gestao", label_visibility="collapsed",
                      format_func=rotulo_menu, on_change=lambda: st.session_state.update(menu_paineis=None))
@@ -289,6 +303,7 @@ def pagina_central():
     ui.topo("🎯 Central do Proprietário",
             f"{DIAS_SEMANA[hoje.weekday()].capitalize()}, {hoje:%d/%m/%Y} · dados da rede até "
             f"<b>{ULTIMA:%d/%m/%Y}</b>")
+    botao_custo()
     criticos = [a for a in ALERTAS if a.nivel == "critico"]
     atencao = [a for a in ALERTAS if a.nivel == "atencao"]
     destaques = [a for a in ALERTAS if a.nivel == "destaque"]
@@ -321,7 +336,7 @@ def pagina_central():
                spark=tendencia("faturamento")),
         ui.kpi("Litros vendidos", format_litros_curto(ind["litros"]),
                ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽", spark=tendencia("litros")),
-        ui.kpi("Margem bruta", format_brl_curto(ind["margem"]),
+        ui.kpi("LB · Lucro Bruto", format_brl_curto(ind["margem"]),
                f"{format_pct_simples(ind['margem_pct'], 1)} · {format_rs_litro(ind['margem_litro'])}", "📈",
                "destaque", spark=tendencia("margem")),
         ui.kpi("Estoque na rede", format_litros_curto(est["estoque"].sum()),
@@ -392,12 +407,12 @@ def pagina_rede():
         "faturamento": ui.kpi("Faturamento", format_brl_curto(ind["faturamento"]),
                               ui.delta_html(_var(ind["faturamento"], ant["faturamento"])) + comp, "💰",
                               spark=tendencia("faturamento")),
-        "margem": ui.kpi("Margem bruta", format_brl_curto(ind["margem"]),
+        "margem": ui.kpi("LB · Lucro Bruto", format_brl_curto(ind["margem"]),
                          ui.delta_html(_var(ind["margem"], ant["margem"])) + comp, "📈", "destaque",
                          spark=tendencia("margem")),
-        "margem_pct": ui.kpi("Margem bruta %", format_pct_simples(ind["margem_pct"], 2),
+        "margem_pct": ui.kpi("LB %", format_pct_simples(ind["margem_pct"], 2),
                              ui.delta_html(ind["margem_pct"] - ant["margem_pct"], tipo="pp") + comp, "％"),
-        "margem_litro": ui.kpi("Margem média por litro", format_rs_litro(ind["margem_litro"]),
+        "margem_litro": ui.kpi("LB médio por litro", format_rs_litro(ind["margem_litro"]),
                                ui.delta_html(_var(ind["margem_litro"], ant["margem_litro"])) + comp, "🧮"),
         "estoque": ui.kpi("Estoque atual", format_litros(est["estoque"].sum()),
                           f"{len(est)} tanques · medição de {per.fim:%d/%m}", "🛢️", spark=tendencia("estoque")),
@@ -409,13 +424,9 @@ def pagina_rede():
                           ", ".join(p.replace("B2 ", "") for p in postos_alerta) or "nenhum", "🚦",
                           "alerta-critico" if tem_critico else ("alerta-atencao" if postos_alerta else "")),
     }
-    if ui.novo():
-        # Os quatro que o dono olha primeiro, grandes; o resto, leve, embaixo.
-        ui.grade_kpis([cartoes[k] for k in ("faturamento", "volume", "margem", "atencao")])
-        ui.grade_kpis([cartoes[k] for k in ("margem_pct", "margem_litro", "estoque", "autonomia")], compacto=True)
-    else:
-        ui.grade_kpis([cartoes[k] for k in ("volume", "faturamento", "margem", "margem_pct", "margem_litro",
-                                            "estoque", "autonomia", "atencao")])
+    # Os quatro que o dono olha primeiro, grandes; o resto, leve, embaixo.
+    ui.grade_kpis([cartoes[k] for k in ("faturamento", "volume", "margem", "atencao")])
+    ui.grade_kpis([cartoes[k] for k in ("margem_pct", "margem_litro", "estoque", "autonomia")], compacto=True)
 
     # ---- quadro por unidade
     t = an.por_posto(DF, per, POSTOS)
@@ -430,7 +441,7 @@ def pagina_rede():
         info_p = D["postos"].loc[p]
         dias_txt = f"{format_decimal(e['estoque'] / e['media'], 1)} dias"
         linhas.append([
-            f'<span class="unidade">{"" if ui.novo() else "⛽ "}{p}</span><span class="mini">{ui.esc(info_p["bairro"])} · '
+            f'<span class="unidade">{p}</span><span class="mini">{ui.esc(info_p["bairro"])} · '
             f'{ui.esc(info_p["cidade"])}</span>',
             ui.barra_celula(format_litros_curto(r["litros"]), r["litros"] / max_l, theme.COLORS["navy_ui"]),
             format_brl_curto(r["faturamento"]),
@@ -446,25 +457,25 @@ def pagina_rede():
              format_brl_curto(t["margem"].sum()), format_pct_simples(ind["margem_pct"], 1),
              format_rs_litro(ind["margem_litro"]), format_litros_curto(tot_e), ""]
     with st.container(border=True):
-        ui.bloco_titulo("Quadro das unidades", f"{texto_periodo(per)} · margem % com a variação em pontos "
+        ui.bloco_titulo("Quadro das unidades", f"{texto_periodo(per)} · LB % com a variação em pontos "
                         f"percentuais {rotulo_comparacao(per)}")
         ui.md(ui.tabela_html(
-            [("Unidade", False), ("Litros vendidos", True), ("Faturamento", True), ("Margem R$", True),
-             ("Margem %", True), ("Margem/L", True), ("Estoque", True), ("Situação", False)],
+            [("Unidade", False), ("Litros vendidos", True), ("Faturamento", True), ("LB R$", True),
+             ("LB %", True), ("LB/L", True), ("Estoque", True), ("Situação", False)],
             linhas, total))
 
     # ---- as quatro perguntas
     c1, c2 = st.columns(2)
     with c1, st.container(border=True):
         melhor = t.loc[t["margem"].idxmax(), "posto"]
-        ui.bloco_titulo("Margem bruta por posto", f"{texto_periodo(per)} · em laranja, o maior",
+        ui.bloco_titulo("LB por posto", f"{texto_periodo(per)} · em laranja, o maior",
                         pergunta="Onde estamos ganhando mais?")
         t2 = t.assign(txt=[f"{format_brl_curto(m)} · {format_rs_litro(l)}" for m, l in zip(t["margem"], t["margem_litro"])])
         grafico(charts.barras_postos(t2, "margem", "txt", 260, destaque=melhor))
     with c2, st.container(border=True):
-        ui.bloco_titulo("Margem por litro: mês × média de 12 meses",
+        ui.bloco_titulo("LB por litro: mês × média de 12 meses",
                         "Ponto cinza = média dos 12 meses anteriores · ponto colorido = mês atual",
-                        pergunta="Onde a margem caiu?")
+                        pergunta="Onde o LB caiu?")
         hal = pd.DataFrame([{"posto": p, "hist": an.media_12_meses(DF, per, p)["margem_litro"],
                              "atual": t.set_index("posto").loc[p, "margem_litro"]} for p in POSTOS])
         grafico(charts.halteres_margem(hal, 260))
@@ -491,7 +502,7 @@ def pagina_rede():
         ui.bloco_titulo("Volume vendido por combustível", "Litros por mês")
         grafico(charts.mensal_empilhado(s_prod, parcial, 300))
     with c6, st.container(border=True):
-        ui.bloco_titulo("Margem bruta por mês", f"Em destaque, {nome_mes(per.mes, per.ano)}")
+        ui.bloco_titulo("LB por mês", f"Em destaque, {nome_mes(per.mes, per.ano)}")
         grafico(charts.mensal_barras(s, "margem", "brl", (per.ano, per.mes), parcial, 300))
 
 
@@ -527,15 +538,14 @@ def pagina_posto(posto: str):
     info = D["postos"].loc[posto]
     situ = al.situacao_posto(ALERTAS, posto)
     per = cabecalho(f"⛽ {posto}", f"{ui.esc(info['bairro'])} · {ui.esc(info['cidade'])} — "
-                    f"{ui.esc(info['perfil'])}", df=dfp)
+                    f"{ui.esc(info['perfil'])}", df=dfp, botao=False)
     status_envio = arm.status_postos(arm.ler_envios(), [posto])[posto]
     ultima_p = an.ultima_data(DF, posto)
     envio_txt = (f"📤 Última planilha {quando_txt(status_envio['data_hora'])} por "
                  f"{ui.esc(status_envio['usuario'])}" if status_envio else "📤 Nenhum envio registrado")
     ui.md(f'<div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:-.3rem 0 .2rem">'
           f'{ui.pill(situ, "Sem alertas" if situ == "ok" else None)}'
-          f'<span class="nota">{envio_txt} · dados até {ultima_p:%d/%m/%Y} · {texto_periodo(per)}, '
-          f'comparado com os mesmos dias do mês anterior</span></div>')
+          f'<span class="nota">{envio_txt} · dados até {ultima_p:%d/%m/%Y}</span></div>')
 
     # O alerta de auditoria é do proprietário: o gerente já foi avisado, no
     # envio, de que a alteração fica registrada.
@@ -558,6 +568,7 @@ def pagina_posto(posto: str):
 
     st.session_state[chave_seg] = rotulos[ABAS_POSTO.index(aba)]
     st.segmented_control("Aba", rotulos, key=chave_seg, label_visibility="collapsed", on_change=_mudou_aba)
+    botao_custo()
 
     if aba == "Resumo":
         aba_resumo(posto, per, dfp, meus)
@@ -588,11 +599,11 @@ def _kpis_posto(posto, per, grande=True):
         ui.kpi("Litros vendidos", format_litros(ind["litros"]),
                ui.delta_html(_var(ind["litros"], ant["litros"])) + comp, "⛽", "grande",
                spark=tendencia("litros", posto)),
-        ui.kpi("Margem bruta", format_brl_curto(ind["margem"]),
+        ui.kpi("LB · Lucro Bruto", format_brl_curto(ind["margem"]),
                f"{format_pct_simples(ind['margem_pct'], 1)} do faturamento · "
                + ui.delta_html(_var(ind["margem"], ant["margem"])), "📈", "grande destaque",
                spark=tendencia("margem", posto)),
-        ui.kpi("Margem por litro", format_rs_litro(ind["margem_litro"]),
+        ui.kpi("LB por litro", format_rs_litro(ind["margem_litro"]),
                ui.delta_html(_var(ind["margem_litro"], ant["margem_litro"])) + comp, "🧮", "grande"),
         ui.kpi("Em estoque", format_litros(est["estoque"].sum()),
                f"{format_pct_simples(est['estoque'].sum() / est['capacidade'].sum() * 100, 0)} da capacidade · "
@@ -605,43 +616,39 @@ def _kpis_posto(posto, per, grande=True):
 
 
 def aba_resumo(posto, per, dfp, meus):
+    equilibrio_ui.bloco(DF, D["despesas"], posto, per, custo=CUSTO)   # o destaque pedido pelo dono: o ponto de equilíbrio
     ind, est = _kpis_posto(posto, per)
     problemas = [a for a in meus if a.nivel in ("critico", "atencao")]
     if problemas:
-        if ui.novo():
-            itens = "".join(f'<span class="chip {a.nivel}">{ui.esc(a.resumo)}</span>' for a in problemas)
-            ui.md(f'<div class="chips"><span class="chips-rotulo">Alertas deste posto</span>{itens}</div>')
-        else:
-            itens = " · ".join(f"{a.icone} {ui.esc(a.resumo)}" for a in problemas)
-            ui.md(f'<div class="bloco" style="padding:.7rem 1rem"><b>Alertas deste posto:</b> {itens}</div>')
+        itens = "".join(f'<span class="chip {a.nivel}">{ui.esc(a.resumo)}</span>' for a in problemas)
+        ui.md(f'<div class="chips"><span class="chips-rotulo">Alertas deste posto</span>{itens}</div>')
         st.button("Ver os alertas deste posto →", key=f"ver_alertas_{posto}", type="tertiary",
                   on_click=lambda: st.session_state.update({f"aba_{posto}": "Alertas"}))
 
-    ui.secao("🛢️ Estoque atual e autonomia", f"Medição de {est['data'].max():%d/%m} · o traço no tanque "
-             "marca 2,5 dias de venda")
+    ui.secao("🛢️ Estoque atual e autonomia", f"Medição de {est['data'].max():%d/%m}")
     ui.md(ui.tanques_html(est))
 
     comb = an.por_combustivel(DF, per, posto)
     ui.secao("Por combustível", texto_periodo(an.periodo(dfp, per.ano, per.mes)))
     c1, c2, c3 = st.columns(3)
     with c1, st.container(border=True):
-        ui.bloco_titulo("Volume vendido", "Litros no período")
+        ui.bloco_titulo("Volume vendido")
         grafico(charts.barras_combustivel(comb, "litros", "litros"))
     with c2, st.container(border=True):
-        ui.bloco_titulo("Faturamento", "R$ no período")
+        ui.bloco_titulo("Faturamento")
         grafico(charts.barras_combustivel(comb, "faturamento", "brl"))
     with c3, st.container(border=True):
-        ui.bloco_titulo("Margem por litro", "Preço médio − custo médio")
+        ui.bloco_titulo("LB por litro")
         grafico(charts.barras_combustivel(comb, "margem_litro", "rs_litro"))
 
     c4, c5 = st.columns(2)
     s = an.serie_mensal(DF, posto)
     parcial = (ULTIMA.year, ULTIMA.month) if an.periodo(dfp, ULTIMA.year, ULTIMA.month).parcial else None
     with c4, st.container(border=True):
-        ui.bloco_titulo("Evolução das vendas — últimos 12 meses", "Litros por mês · * mês em andamento")
+        ui.bloco_titulo("Evolução das vendas — últimos 12 meses", "* mês em andamento")
         grafico(charts.mensal_barras(s, "litros", "litros", (per.ano, per.mes), parcial, 290))
     with c5, st.container(border=True):
-        ui.bloco_titulo("Preço de venda × custo médio", "Últimos 90 dias · a faixa entre as linhas é a margem")
+        ui.bloco_titulo("Preço de venda × custo médio", "Últimos 90 dias")
         prod = st.segmented_control("Combustível", theme.COMBUSTIVEIS, default=theme.COMBUSTIVEIS[0],
                                     key=f"pc_{posto}", label_visibility="collapsed",
                                     format_func=lambda p: f"{theme.ICONES_COMBUSTIVEL[p]} {theme.ROTULO_CURTO[p]}")
@@ -685,16 +692,16 @@ def aba_margens(posto, per, dfp):
     hist = an.media_12_meses(DF, per, posto)
     comb = an.por_combustivel(DF, per, posto)
     ui.grade_kpis([
-        ui.kpi("Margem bruta", format_brl_curto(ind["margem"]), texto_periodo(pp), "📈", "destaque"),
-        ui.kpi("Margem bruta %", format_pct_simples(ind["margem_pct"], 2),
+        ui.kpi("LB · Lucro Bruto", format_brl_curto(ind["margem"]), texto_periodo(pp), "📈", "destaque"),
+        ui.kpi("LB %", format_pct_simples(ind["margem_pct"], 2),
                ui.delta_html(ind["margem_pct"] - hist["margem_pct"], tipo="pp") + "vs média de 12 meses", "％"),
-        ui.kpi("Margem por litro", format_rs_litro(ind["margem_litro"]),
+        ui.kpi("LB por litro", format_rs_litro(ind["margem_litro"]),
                f"média de 12 meses: {format_rs_litro(hist['margem_litro'])}", "🧮"),
         ui.kpi("Preço médio × custo médio", format_rs_litro(ind["preco_medio"]),
                f"custo médio: {format_rs_litro(ind['custo_medio'])}", "🏷️"),
     ])
     with st.container(border=True):
-        ui.bloco_titulo("Margem por combustível", f"{texto_periodo(pp)} · variação da margem por litro "
+        ui.bloco_titulo("LB por combustível", f"{texto_periodo(pp)} · variação do LB por litro "
                         f"{rotulo_comparacao(pp)}")
         linhas = []
         for _, r in comb.iterrows():
@@ -706,21 +713,21 @@ def aba_margens(posto, per, dfp):
                  format_rs_litro(ind["margem_litro"]), format_pct_simples(ind["margem_pct"], 1),
                  format_brl(ind["margem"], 0), ui.var_html(_var(ind["margem_litro"], ind["anterior"]["margem_litro"]))]
         ui.md(ui.tabela_html([("Combustível", False), ("Preço médio", True), ("Custo médio", True),
-                              ("Margem/L", True), ("Margem %", True), ("Margem R$", True),
-                              ("Margem/L vs mês ant.", True)], linhas, total))
+                              ("LB/L", True), ("LB %", True), ("LB R$", True),
+                              ("LB/L vs mês ant.", True)], linhas, total))
     c1, c2 = st.columns(2)
     parcial = (ULTIMA.year, ULTIMA.month) if an.periodo(dfp, ULTIMA.year, ULTIMA.month).parcial else None
     with c1, st.container(border=True):
-        ui.bloco_titulo("Margem por litro, mês a mês", "Os quatro combustíveis · últimos 12 meses")
+        ui.bloco_titulo("LB por litro, mês a mês", "Os quatro combustíveis · últimos 12 meses")
         grafico(charts.mensal_linhas_combustivel(an.serie_mensal(DF, posto, por_produto=True),
                                                  "margem_litro", "rs_litro", 300))
     with c2, st.container(border=True):
-        ui.bloco_titulo("Margem bruta %, mês a mês",
+        ui.bloco_titulo("LB %, mês a mês",
                         f"Linha laranja = média dos 12 meses anteriores ({format_pct_simples(hist['margem_pct'], 1)})")
         grafico(charts.margem_pct_mensal(an.serie_mensal(DF, posto), hist["margem_pct"],
                                          (per.ano, per.mes), parcial, 300))
     with st.container(border=True):
-        ui.bloco_titulo("Preço de venda × custo médio, dia a dia", "Últimos 6 meses · a faixa é a margem")
+        ui.bloco_titulo("Preço de venda × custo médio, dia a dia", "Últimos 6 meses · a faixa é o LB")
         prod = st.segmented_control("Combustível", theme.COMBUSTIVEIS, default=theme.COMBUSTIVEIS[0],
                                     key=f"pcm_{posto}", label_visibility="collapsed",
                                     format_func=lambda p: f"{theme.ICONES_COMBUSTIVEL[p]} {p}")
@@ -756,9 +763,43 @@ def aba_estoque(posto, per, dfp):
                 "tolerância, verifique vazamento, aferição das bombas e a medição dos tanques.")
 
 
+def bloco_desconto(posto, pp):
+    """Quanto o desconto do boleto vale: o LB por litro nos dois preços (o botão ao lado das abas escolhe qual conta vale)."""
+    g = an.recorte(DF, pp.inicio, pp.fim, posto)
+    litros = float(g["vendas_l"].sum())
+    desc_rs = float((g["desconto_litro"] * g["vendas_l"]).sum())
+    if litros <= 0 or desc_rs <= 0:
+        return
+    planilha = float(g["margem"].sum()) + (desc_rs if CUSTO == "sistema" else 0.0)     # a margem, no preço planilha
+    sistema = planilha - desc_rs                                                        # e no preço sistema (nota cheia)
+    ui.secao("Desconto do boleto")
+    ui.grade_kpis([
+        ui.kpi("LB/L · planilha", format_rs_litro(planilha / litros, 3),
+               "", "🧾", "destaque" if CUSTO == "planilha" else ""),
+        ui.kpi("LB/L · sistema", format_rs_litro(sistema / litros, 3),
+               "", "🖥️", "destaque" if CUSTO == "sistema" else ""),
+        ui.kpi("O desconto do boleto vale", format_brl_curto(desc_rs),
+               f"{format_rs_litro(desc_rs / litros, 3)} em média", "💰"),
+    ])
+
+
+def compras_no_preco() -> pd.DataFrame:
+    """As notas no preço que vale na conta (botão do menu lateral). Sistema = a nota cheia: custo e valor + o desconto do
+    boleto. SÓ para mostrar: as conferências antifraude seguem com as notas como o posto as enviou."""
+    c = D["compras"]
+    if CUSTO != "sistema" or c.empty:
+        return c
+    c = c.copy()
+    d = descontos.por_compra(c, D["descontos"])
+    c["custo"] = c["custo"] + d
+    c["valor"] = c["valor"] + c["litros"] * d
+    return c
+
+
 def aba_compras(posto, per, dfp):
     pp = an.periodo(dfp, per.ano, per.mes)
-    comp = an.compras_periodo(D["compras"], pp, posto)
+    bloco_desconto(posto, pp)
+    comp = an.compras_periodo(compras_no_preco(), pp, posto)
     if len(comp):
         ui.grade_kpis([
             ui.kpi("Litros comprados", format_litros(comp["litros"].sum()), f"{len(comp)} notas fiscais", "🚚"),
@@ -771,7 +812,7 @@ def aba_compras(posto, per, dfp):
         with st.container(border=True):
             ui.bloco_titulo("Custo por distribuidora", "Últimos 90 dias · custo médio ponderado por litro · "
                             "🏆 a mais barata em cada combustível")
-            cd = an.custo_por_distribuidora(D["compras"], pp.fim - pd.Timedelta(days=89), pp.fim, posto)
+            cd = an.custo_por_distribuidora(compras_no_preco(), pp.fim - pd.Timedelta(days=89), pp.fim, posto)
             ui.md(quadro_distribuidoras(cd))
         with st.container(border=True):
             ui.bloco_titulo("Notas recebidas", f"{texto_periodo(pp)} · as mais recentes primeiro")
@@ -787,13 +828,13 @@ def aba_compras(posto, per, dfp):
 
     res = an.resultado(DF, D["despesas"], per, posto)
     ui.secao("💼 Resultado depois das despesas",
-             "Margem bruta − perdas do LMC − despesas lançadas na aba DESPESAS. Antes de IR/CSLL.")
+             "LB − perdas do LMC − despesas · antes de IR/CSLL")
     if not res["tem_despesas"]:
-        st.info("Sem despesas lançadas neste período: o painel mostra só a margem bruta. Preencha a aba "
+        st.info("Sem despesas lançadas neste período: o painel mostra só o LB. Preencha a aba "
                 "DESPESAS da planilha para ver o resultado.")
         return
     ui.grade_kpis([
-        ui.kpi("Margem bruta", format_brl_curto(res["margem"]), "faturamento − custo do combustível", "📈"),
+        ui.kpi("LB · Lucro Bruto", format_brl_curto(res["margem"]), "", "📈"),
         ui.kpi("Perdas no LMC", format_brl_curto(res["perda_rs"]), "combustível que sumiu da régua", "💧"),
         ui.kpi("Despesas", format_brl_curto(res["despesas"]), f"{len(res['por_categoria'])} categorias", "🧾"),
         # Resultado compara em REAIS: com base pequena ou negativa, o percentual
@@ -805,7 +846,7 @@ def aba_compras(posto, per, dfp):
     ])
     c1, c2 = st.columns([1.35, 1])
     with c1, st.container(border=True):
-        ui.bloco_titulo("Da margem bruta ao resultado", texto_periodo(pp))
+        ui.bloco_titulo("Do LB ao resultado", texto_periodo(pp))
         grafico(charts.cascata_resultado(res, 330))
     with c2, st.container(border=True):
         ui.bloco_titulo("Despesas por categoria", texto_periodo(pp))
@@ -931,7 +972,7 @@ def pagina_envio():
     cards = [ui.kpi("Referência", nome_mes(rel.mes, rel.ano), f"{r['dias']} dias · até {r['ate']:%d/%m}", "🗓️"),
              ui.kpi("Volume vendido", format_litros(r["litros"]), f"{format_int(r['registros'])} registros", "⛽"),
              ui.kpi("Faturamento", format_brl(r["faturamento"], 0), "", "💰"),
-             ui.kpi("Margem bruta", format_brl(r["margem"], 0), "", "📈", "destaque")]
+             ui.kpi("LB · Lucro Bruto", format_brl(r["margem"], 0), "", "📈", "destaque")]
     ui.grade_kpis(cards)
     if comp:
         ui.nota(f"Substitui a versão que está no painel (dados até {comp['ate']:%d/%m}): volume "
@@ -1099,17 +1140,11 @@ GRAVIDADE = {"normal": ("ok", "Correção normal"), "atencao": ("atencao", "Aten
 
 
 def sinal_html(s: antifraude.Sinal) -> str:
-    if ui.novo():
-        return (f'<details class="alerta-linha {s.nivel}"><summary><span class="al-ponto"></span>'
-                f'<span class="al-corpo"><span class="al-titulo">{ui.esc(s.titulo)}</span>'
-                f'<span class="al-resumo">{ui.esc(s.detalhe)}</span></span>'
-                f'<span class="al-posto">{ui.esc(s.posto.replace("B2 ", ""))}</span></summary>'
-                f'<div class="al-det"><b>Por que importa:</b> {ui.esc(s.porque)}</div></details>')
-    return (f'<div class="alerta {s.nivel}"><div class="a-topo">'
-            f'<span class="a-titulo">{s.icone} {ui.esc(s.titulo.upper())}</span>'
-            f'<span class="a-posto">{ui.esc(s.posto)}</span></div>'
-            f'<div class="a-resumo">{ui.esc(s.detalhe)}</div>'
-            f'<div class="a-det">Por que importa: {ui.esc(s.porque)}</div></div>')
+    return (f'<details class="alerta-linha {s.nivel}"><summary><span class="al-ponto"></span>'
+            f'<span class="al-corpo"><span class="al-titulo">{ui.esc(s.titulo)}</span>'
+            f'<span class="al-resumo">{ui.esc(s.detalhe)}</span></span>'
+            f'<span class="al-posto">{ui.esc(s.posto.replace("B2 ", ""))}</span></summary>'
+            f'<div class="al-det"><b>Por que importa:</b> {ui.esc(s.porque)}</div></details>')
 
 
 def pagina_auditoria():
@@ -1137,10 +1172,8 @@ def pagina_auditoria():
                                   label_visibility="collapsed") or "Toda a rede"
     lista = sinais if filtro == "Toda a rede" else [s for s in sinais if s.posto == filtro]
     if lista:
-        cols = None if ui.novo() else st.columns(2)
-        for i, s in enumerate(lista):
-            with (st.container() if cols is None else cols[i % 2]):
-                ui.md(sinal_html(s))
+        for s in lista:
+            ui.md(sinal_html(s))
     else:
         st.success("Nenhum sinal no período. 👏")
 
@@ -1214,7 +1247,7 @@ def pagina_reuniao():
 
     ui.secao("🏆 Destaques do mês")
     cartoes = []
-    for coluna, rotulo, icone in (("margem_litro", "Melhor margem por litro", "📈"),
+    for coluna, rotulo, icone in (("margem_litro", "Melhor LB por litro", "📈"),
                                   ("mix_aditivada", "Mais aditivada vendida", "⛽"),
                                   ("var_litros", "Maior crescimento", "🚀"),
                                   ("pontualidade", "Planilha mais pontual", "⏱️")):
@@ -1290,6 +1323,28 @@ def pagina_admin():
                                                        "depois, ou mês já fechado"],
         ]
         ui.md(ui.tabela_html([("Alerta", False), ("Dispara quando", False)], regras))
+    with st.container(border=True):
+        ui.bloco_titulo("Desconto do boleto por distribuidora", "R$ por litro abatido no boleto")
+        distrib = sorted(set(D["compras"]["distribuidora"].astype(str))) if len(D["compras"]) else []
+        tabela = D["descontos"].rename(columns={"distribuidora": "Distribuidora", "produto": "Produto",
+                                                "desconto": "Desconto (R$/L)"})
+        editada = st.data_editor(
+            tabela, num_rows="dynamic", hide_index=True, key="editor_descontos", width="stretch",
+            column_config={
+                "Distribuidora": st.column_config.TextColumn("Distribuidora", help="Como aparece nas notas: "
+                                                             + (", ".join(distrib) or "ainda sem compras"), required=True),
+                "Produto": st.column_config.SelectboxColumn("Produto", options=[descontos.TODOS] + theme.COMBUSTIVEIS,
+                                                            default=descontos.TODOS),
+                "Desconto (R$/L)": st.column_config.NumberColumn("Desconto (R$/L)", min_value=0.0,
+                                                                 max_value=descontos.MAX_DESCONTO, step=0.005, format="%.3f"),
+            })
+        if st.button("Salvar descontos", key="salvar_descontos"):
+            avisos = descontos.gravar(editada.rename(columns={"Distribuidora": "distribuidora", "Produto": "produto",
+                                                              "Desconto (R$/L)": "desconto"}))
+            carregar.clear()
+            st.toast("Descontos salvos: as contas foram refeitas." + (" " + " ".join(avisos) if avisos else ""))
+            st.rerun()
+        ui.nota("Na nuvem, para valer de vez, edite <code>data/descontos_boleto.csv</code> e envie ao GitHub.")
     with st.container(border=True):
         info = D["info"]
         ui.bloco_titulo("Base de dados", f"Montada em {datetime.fromisoformat(info['gerado_em']):%d/%m/%Y às %H:%M} · "

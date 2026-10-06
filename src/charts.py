@@ -25,7 +25,6 @@ from src.formatting import (
 C = theme.COLORS
 CFG = {"displayModeBar": False, "responsive": True, "locale": "pt-BR"}
 DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-NOVO = False        # o app.py liga no "Painel novo": grade pontilhada, dica escura, barras arredondadas
 
 
 def _base(fig: go.Figure, altura: int = 300, legenda: bool = False) -> go.Figure:
@@ -45,13 +44,13 @@ def _base(fig: go.Figure, altura: int = 300, legenda: bool = False) -> go.Figure
                      tickfont=dict(size=11.5, color=C["text_secondary"]), fixedrange=True, tickangle=0)
     fig.update_yaxes(showgrid=True, gridcolor=C["grid"], gridwidth=1, zeroline=False, ticks="",
                      tickfont=dict(size=11, color=C["text_muted"]), fixedrange=True)
-    if NOVO:
-        fig.update_layout(
-            barcornerradius=6,
-            hoverlabel=dict(bgcolor="#0b1646", bordercolor="#0b1646",
-                            font=dict(family=theme.FONTE_FAMILIA, size=12, color="#ffffff")))
-        fig.update_yaxes(gridcolor="#e9edf5", griddash="dot")
-        fig.update_xaxes(linecolor="rgba(0,0,0,0)")
+    # visual único: grade pontilhada, dica escura, barras arredondadas
+    fig.update_layout(
+        barcornerradius=6,
+        hoverlabel=dict(bgcolor="#0b1646", bordercolor="#0b1646",
+                        font=dict(family=theme.FONTE_FAMILIA, size=12, color="#ffffff")))
+    fig.update_yaxes(gridcolor="#e9edf5", griddash="dot")
+    fig.update_xaxes(linecolor="rgba(0,0,0,0)")
     return fig
 
 
@@ -289,7 +288,7 @@ def preco_custo(s: pd.DataFrame, produto: str, altura: int = 280) -> go.Figure:
         x=g["data"], y=g["preco_medio"], name="Preço de venda", mode="lines",
         line=dict(color=cor, width=2.6), fill="tonexty", fillcolor=_alfa(cor, .10),
         customdata=[[format_rs_litro(p, 3), format_rs_litro(p - c, 3)] for p, c in zip(g["preco_medio"], g["custo_medio"])],
-        hovertemplate="Preço de venda: %{customdata[0]}<br>Margem: %{customdata[1]}<extra></extra>"))
+        hovertemplate="Preço de venda: %{customdata[0]}<br>LB: %{customdata[1]}<extra></extra>"))
     _base(fig, altura, legenda=True)
     fig.update_layout(hovermode="x unified", margin=dict(r=80))
     ult = g.iloc[-1] if len(g) else None
@@ -386,7 +385,7 @@ def cascata_resultado(res: dict, altura: int = 330) -> go.Figure:
     cats = res["por_categoria"]
     grandes = cats.head(5)
     resto = cats.iloc[5:].sum()
-    nomes = ["Margem bruta"]
+    nomes = ["LB"]
     valores = [res["margem"]]
     medidas = ["absolute"]
     if abs(res["perda_rs"]) > 0.5:
@@ -550,4 +549,78 @@ def radar_mapa(f: pd.DataFrame, rotulos: list[str], altura: int = 440) -> go.Fig
                                center=dict(lat=float(d["lat"].mean()), lon=float(d["lon"].mean()))),
                       hoverlabel=dict(bgcolor="#ffffff", bordercolor=C["border"],
                                       font=dict(family=theme.FONTE_FAMILIA, size=12, color=C["text_primary"])))
+    return fig
+
+
+# ------------------------------------------------------ ponto de equilíbrio ---
+def equilibrio_curva(eq: dict, altura: int = 300) -> go.Figure:
+    """O acumulado do mês (margem bruta + perdas) subindo até a linha dos custos. Sem legenda: rótulos nas próprias linhas."""
+    curva, custos, dias_mes = eq["curva"], eq["custos"], eq["dias_mes"]
+    x, y = list(curva.index), [float(v) for v in curva.values]
+    fig = go.Figure()
+    # a faixa "depois do equilíbrio": uma linha invisível nos custos e a curva cortada nos custos, preenchida até ela
+    fig.add_trace(go.Scatter(x=x, y=[custos] * len(x), mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=x, y=[max(v, custos) for v in y], mode="lines", line=dict(width=0), fill="tonexty",
+                             fillcolor="rgba(29,50,120,.10)", showlegend=False, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=[1, dias_mes], y=[custos, custos], mode="lines", showlegend=False,
+                             line=dict(color=C["text_primary"], width=1.6, dash="dash"),
+                             hovertemplate="Custos do mês: " + format_brl(custos) + "<extra></extra>"))
+    hist = (eq.get("historico") or {}).get("curva_media")
+    if hist is not None and len(hist):
+        fig.add_trace(go.Scatter(x=list(hist.index), y=[float(v) for v in hist.values], mode="lines", showlegend=False,
+                                 line=dict(color="#aab2c5", width=1.6, dash="dot"),
+                                 customdata=[format_brl(v) for v in hist.values],
+                                 hovertemplate="Média dos meses anteriores: %{customdata}<extra></extra>"))
+        fig.add_annotation(x=hist.index[-1], y=float(hist.values[-1]), text="média dos meses anteriores", showarrow=False,
+                           xanchor="right", yanchor="top", yshift=-4, font=dict(size=10.5, color="#8a93a8"))
+    fig.add_trace(go.Scatter(x=x, y=y, mode="lines", name="Este mês", showlegend=False,
+                             line=dict(color=C["navy_ui"], width=3.2),
+                             customdata=[format_brl(v) for v in y],
+                             hovertemplate="Dia %{x}: %{customdata} acumulados<extra></extra>"))
+    if eq["parcial"] and eq["dia_equilibrio"] is None and eq.get("ritmo") and eq["ritmo"] > 0:
+        # a projeção no ritmo dos últimos 7 dias, tracejada, até cruzar os custos (ou até o fim do mês)
+        alvo_x = min(eq["previsto_dia"], dias_mes)
+        alvo_y = custos if eq["previsto_dia"] <= dias_mes else y[-1] + eq["ritmo"] * (dias_mes - x[-1])
+        fig.add_trace(go.Scatter(x=[x[-1], alvo_x], y=[y[-1], alvo_y], mode="lines", showlegend=False,
+                                 line=dict(color=C["orange"], width=2.2, dash="dash"), hoverinfo="skip"))
+    fig.add_annotation(x=dias_mes, y=custos, text=f"custos do mês · {format_brl_curto(custos)}", showarrow=False,
+                       xanchor="right", yanchor="bottom", yshift=3, font=dict(size=11, color=C["text_secondary"]))
+    dia = eq["dia_equilibrio"]
+    marca = dia if dia is not None else (eq["previsto_dia"] if eq["previsto_dia"] and eq["previsto_dia"] <= dias_mes else None)
+    if marca is not None:
+        fig.add_vline(x=marca, line_dash="dot", line_color=C["orange"], line_width=1.8)
+        fig.add_annotation(x=marca, y=1, yref="paper", yanchor="bottom", showarrow=False, xanchor="left", xshift=5,
+                           text=f"<b>{'equilíbrio' if dia is not None else 'previsto'} · dia {marca}</b>",
+                           font=dict(size=12, color=C["orange"]))
+    _base(fig, altura)
+    fig.update_layout(hovermode="x unified", margin=dict(t=30, r=10))
+    fig.update_xaxes(range=[0.5, dias_mes + 0.5], tickvals=[d for d in (1, 5, 10, 15, 20, 25, 30) if d <= dias_mes],
+                     title=dict(text="dia do mês", font=dict(size=11, color=C["text_muted"])))
+    valores = y + [custos] + ([float(v) for v in hist.values] if hist is not None else [])
+    _eixo_reais(fig, valores)
+    return fig
+
+
+def equilibrio_rede(eq: dict, altura: int = 300) -> go.Figure:
+    """Em que dia cada posto cobre os custos do mês (menor = melhor): o posto em foco em laranja, a média da rede tracejada."""
+    postos = {p: v for p, v in eq["rede"]["postos"].items() if v["dia"] is not None}
+    ordem = sorted(postos, key=lambda p: postos[p]["dia"], reverse=True)          # o mais cedo fica no alto
+    foco = eq["posto"]
+    textos = [f"dia {postos[p]['dia']}" + (" (previsto)" if postos[p]["previsto"] else "") for p in ordem]
+    fig = go.Figure(go.Bar(
+        y=[p.replace("B2 ", "") for p in ordem], x=[postos[p]["dia"] for p in ordem], orientation="h",
+        marker=dict(color=[C["orange"] if p == foco else C["navy_ui"] for p in ordem], cornerradius=4,
+                    pattern=dict(shape=["/" if postos[p]["previsto"] else "" for p in ordem], solidity=0.45)),
+        text=textos, textposition="outside", cliponaxis=False, constraintext="none",
+        textfont=dict(size=11.5, color=C["text_primary"]),
+        hovertemplate="%{y}: %{text}<extra></extra>"))
+    media = eq["rede"]["media_dia"]
+    if media is not None:
+        fig.add_vline(x=media, line_dash="dash", line_color="#6b7489", line_width=1.6)
+        fig.add_annotation(x=media, y=1, yref="paper", yanchor="bottom", showarrow=False, xanchor="left", xshift=4,
+                           text=f"média da rede · dia {media:.0f}", font=dict(size=11, color="#6b7489"))
+    _base(fig, altura)
+    fig.update_layout(bargap=0.3, margin=dict(t=30, r=70))
+    fig.update_xaxes(range=[0, eq["dias_mes"] + 4], showticklabels=False, showgrid=False)
+    fig.update_yaxes(showgrid=False, automargin=True, tickfont=dict(size=12, color=C["text_primary"]))
     return fig
